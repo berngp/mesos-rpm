@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Make sure that we are in the right directory.
+if test ! -f configure.ac; then
+    cat >&2 <<__EOF__
+You must run bootstrap from the root of the distribution.
+__EOF__
+    exit 1
+fi
+
+# Prepare RPM directories.
+for dir in BUILD RPMS SOURCES SPECS SRPMS
+do
+ [[ -d $dir ]] && rm -Rf $dir
+  mkdir $dir
+done
+
+# m4 direcotry required by autoconf.
+if test ! -d m4; then
+    mkdir m4
+fi
+
+# Note that we don't use '--no-recursive' becuase older versions of
+# autoconf/autoreconf bail with that option.
+autoreconf --install -Wall --verbose "${@}"
+
+# Configure this space.
+export MESOS_VERSION=${MESOS_VERSION:-`basename $PWD`}
+./configure
+
+# Create additional source files from template.
+tar -cvf SOURCES/rpm-sources.tar --exclude='*.in' -C rpm-sources .
+
+# Build RPM
+# rpmbuild --define '_topdir '`pwd` -ba SPECS/apache-mesos.spec
+

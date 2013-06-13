@@ -1,0 +1,227 @@
+Name: apache-mesos
+#Conflicts: 
+#Obsoletes:
+Version: @MESOS_VERSION@
+Release: _guavus_@PACKAGE_VERSION@_%{?dist}
+Summary: Mesos server, client shell and tools
+License: Apache 2.0
+URL: http://incubator.apache.org/mesos
+Group: Applications/System
+
+Source: @RPM_SOURCE_URL@
+Source1: rpm-sources.tar
+#Patch:
+Prefix: /usr/local/mesos
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+
+Packager: Tech Team Guavus <tech@guavus.com>
+
+%description
+Apache Mesos is a cluster manager that provides efficient resource isolation 
+and sharing across distributed applications, or frameworks. It can run Hadoop, 
+MPI, Hypertable, Spark (a new framework for low-latency interactive and iterative jobs),
+and other applications. Mesos is open source in the Apache Incubator.
+
+#===============================================================================================
+# Master
+#===============================================================================================
+%package master
+Summary: mesos master
+Group: Applications/System
+Requires: apache-mesos
+
+%description master
+Apache Mesos is a cluster manager that provides efficient resource isolation 
+and sharing accross distrubted applications, or frameworks.
+
+This package provides the mesos master software, default configuration files, and init.d scripts.
+
+#===============================================================================================
+# Slave
+#===============================================================================================
+%package slave
+Summary: slave
+Group: Applications/System
+Requires: apache-mesos
+
+%description slave
+Apache Mesos is a cluster manager that provides efficient resource isolation 
+and sharing accross distrubted applications, or frameworks.
+
+This package provides the mesos slave software, default configuration files, and init.d scripts.
+
+#===============================================================================================
+# Local Install
+#===============================================================================================
+%package local
+Summary: local
+Group: Applications/System
+Requires: apache-mesos
+
+%description local
+Apache Mesos is a cluster manager that provides efficient resource isolation 
+and sharing accross distrubted applications, or frameworks.
+
+This package provides the mesos local software, default configuration files, and init.d scripts.
+
+# %prep
+
+# %setup
+
+# %build
+# make
+
+# %install
+
+# mkdir -p $RPM_BUILD_ROOT/usr
+# cp -rv BINARIES/usr/bin $RPM_BUILD_ROOT/usr
+# mkdir -p $RPM_BUILD_ROOT/usr/share/man/man1
+# cp debian/*.1 $RPM_BUILD_ROOT/usr/share/man/man1/
+
+# mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
+# cp -v rpm/init.d-mesosd $RPM_BUILD_ROOT/etc/rc.d/init.d/mesosd
+# chmod a+x $RPM_BUILD_ROOT/etc/rc.d/init.d/mesosd
+# mkdir -p $RPM_BUILD_ROOT/etc
+# cp -v rpm/mesosd.conf $RPM_BUILD_ROOT/etc/mesosd.conf
+# mkdir -p $RPM_BUILD_ROOT/etc/sysconfig
+# cp -v rpm/mesosd.sysconfig $RPM_BUILD_ROOT/etc/sysconfig/mesosd
+# mkdir -p $RPM_BUILD_ROOT/var/lib/mesos
+# mkdir -p $RPM_BUILD_ROOT/var/log/mesos
+# touch $RPM_BUILD_ROOT/var/log/mesos/mesosd.log
+
+%clean
+#scons -c
+rm -rf $RPM_BUILD_ROOT
+
+#  # Master Install
+#  %pre 
+#  # if ! /usr/bin/id -g mesosd &>/dev/null; then
+#  #     /usr/sbin/groupadd -r mesosd
+#  # fi
+#  # if ! /usr/bin/id mesosd &>/dev/null; then
+#  #     /usr/sbin/useradd -M -r -g mesosd -d /var/lib/mesos -s /bin/false -c mesosd mesosd > /dev/null 2>&1
+#  # fi
+#   
+#  %pre master
+#  
+#  %post master
+#  # if test $1 = 1
+#  # then
+#  #   /sbin/chkconfig --add mesos-masterd
+#  # fi
+#  
+#  %preun master
+#  # if test $1 = 0
+#  # then
+#  #   /sbin/chkconfig --del mesos-masterd
+#  # fi
+#  
+#  %postun master
+#  # if test $1 -ge 1
+#  # then
+#  #   /sbin/service mesos-masterd condrestart >/dev/null 2>&1 || :
+#  # fi
+#  
+#  # Slave Install.
+#  %pre slave
+#  
+#  %post slave
+#  # if test $1 = 1
+#  # then
+#  #   /sbin/chkconfig --add mesos-slaved
+#  # fi
+#  
+#  %preun slave
+#  # if test $1 = 0
+#  # then
+#  #   /sbin/chkconfig --del mesos-slaved
+#  # fi
+#  
+#  %postun slave
+#  # if test $1 -ge 1
+#  # then
+#  #   /sbin/service mesos-slaved condrestart >/dev/null 2>&1 || :
+#  # fi
+#  
+#  # Local Install
+#  %pre local
+#  
+#  %post slave
+#  # if test $1 = 1
+#  # then
+#  #   /sbin/chkconfig --add mesos-locald
+#  # fi
+#  
+#  %preun slave
+#  # if test $1 = 0
+#  # then
+#  #   /sbin/chkconfig --del mesos-locald
+#  # fi
+#  
+#  %postun slave
+#  # if test $1 -ge 1
+#  # then
+#  #   /sbin/service mesos-locald condrestart >/dev/null 2>&1 || :
+#  # fi
+#  
+
+%files
+%defattr(-,root,root,-)
+#  #%doc README LICENSE.txt
+#  
+#  %{_bindir}/mesos-local
+#  %{_bindir}/mesos-master
+#  %{_bindir}/mesos-slave
+#  %{_bindir}/gdb-mesos-local
+#  %{_bindir}/gdb-mesos-master
+#  %{_bindir}/gdb-mesos-slave
+#  
+#  # FIXME: uncomment this when there's a stable release whose source
+#  # tree contains man pages.
+#  #%{_mandir}/man1/mesos-local.1*
+#  #%{_mandir}/man1/mesos-master.1*
+#  #%{_mandir}/man1/mesos-slave.1*
+#  #%{_mandir}/man1/gdb-mesos-local.1*
+#  #%{_mandir}/man1/gdb-mesos-master.1*
+#  #%{_mandir}/man1/gdb-mesos-slave.1*
+#  
+#  %files master
+#  %defattr(-,root,root,-)
+#  %config(noreplace) /etc/mesos.conf
+#  %{_bindir}/mesos-masterd
+#  #%{_mandir}/man1/mesos-masterd.1*
+#  /etc/rc.d/init.d/mesos-masterd
+#  /etc/sysconfig/mesos-masterd
+#  #/etc/rc.d/init.d/mesos-masterd
+#  %attr(0755,mesosd,mesosd) %dir /var/lib/mesos
+#  %attr(0755,mesosd,mesosd) %dir /var/log/mesos
+#  %attr(0640,mesosd,mesosd) %config(noreplace) %verify(not md5 size mtime) /var/log/mesos/mesos-masterd.log
+#  
+#  %files slave
+#  %defattr(-,root,root,-)
+#  %config(noreplace) /etc/mesos.conf
+#  %{_bindir}/mesos-slaved
+#  #%{_mandir}/man1/mesos-slaved.1*
+#  /etc/rc.d/init.d/mesos-slaved
+#  /etc/sysconfig/mesos-slaved
+#  #/etc/rc.d/init.d/mesos-slaved
+#  %attr(0755,mesosd,mesosd) %dir /var/lib/mesos
+#  %attr(0755,mesosd,mesosd) %dir /var/log/mesos
+#  %attr(0640,mesosd,mesosd) %config(noreplace) %verify(not md5 size mtime) /var/log/mesos/mesos-slaved.log
+#  
+#  %files local
+#  %defattr(-,root,root,-)
+#  %config(noreplace) /etc/mesos.conf
+#  %{_bindir}/mesos-locald
+#  #%{_mandir}/man1/mesos-locald.1*
+#  /etc/rc.d/init.d/mesos-locald
+#  /etc/sysconfig/mesos-locald
+#  #/etc/rc.d/init.d/mesos-locald
+#  %attr(0755,mesosd,mesosd) %dir /var/lib/mesos
+#  %attr(0755,mesosd,mesosd) %dir /var/log/mesos
+#  %attr(0640,mesosd,mesosd) %config(noreplace) %verify(not md5 size mtime) /var/log/mesos/mesos-locald.log
+ 
+%changelog
+* Thu Jun 6 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+- Wrote mesos.spec.
+
