@@ -43,7 +43,7 @@ build: check-env clone-mesos pull-mesos
 		./bootstrap
 
 clone-mesos:
-	@cd rep; \
+	@cd repo; \
 		if [ ! -d "incubator-mesos" ]; then \
 			git clone git@github.com:Guavus/incubator-mesos.git; \
 		fi
