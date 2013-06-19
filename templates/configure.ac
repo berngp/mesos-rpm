@@ -19,6 +19,8 @@
 AC_PREREQ([2.61])
 AC_INIT([incubator-mesos-rpm], [0.1.0])
 
+MESOS_PROJECT="incubator-mesos"
+
 AC_ARG_VAR([MESOS_VERSION],
            ["Version of Mesos that we are going to use. e.g 0.11.0-incubating-RC3"])
 
@@ -28,16 +30,20 @@ else
     RPM_MESOS_VERSION="`echo $MESOS_VERSION| sed -e 's/-/_/g'`"
 fi
 
+ARTIFACT_NAME="$MESOS_PROJECT-$MESOS_VERSION.tgz"
+
 AC_ARG_VAR([RPM_SOURCE_URL],
            ["URL used to pull the sources from, defaults to https://github.com/apache/incubator-mesos/archive/release-$MESOS_VERSION.zip"])
 
 if test "x$RPM_SOURCE_URL" = "x"; then
-    RPM_SOURCE_URL="incubator-mesos-$MESOS_VERSION.zip"
+    RPM_SOURCE_URL=ARTIFACT_NAME
 fi
 
+AC_SUBST(MESOS_PROJECT)
 AC_SUBST(MESOS_VERSION)
 AC_SUBST(RPM_MESOS_VERSION)
 AC_SUBST(RPM_SOURCE_URL)
+AC_SUBST(ARTIFACT_NAME)
 
 AC_CONFIG_FILES([apache-mesos.spec])
 

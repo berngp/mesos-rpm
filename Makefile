@@ -19,7 +19,7 @@ BUILD_DIR	 =$(BASE_DIR)/build-spaces/$(MESOS_TAG)
 
 .PHONY: build
 
-build: check-env pull-mesos
+build: check-env clone-mesos pull-mesos
 	@if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi
 	@if [ ! -d $(BUILD_DIR)/m4 ];  then mkdir -p $(BUILD_DIR)/m4; fi
 	# Copy Mesos Codebase and checkout the specific tag.
@@ -42,6 +42,12 @@ build: check-env pull-mesos
 	@cd $(BUILD_DIR); \
 		./bootstrap
 
+clone-mesos:
+	@cd rep; \
+		if [ ! -d "incubator-mesos" ]; then \
+			git clone git@github.com:Guavus/incubator-mesos.git; \
+		fi
+
 show-mesos-tags: pull-mesos
 	@echo "Incubator-Mesos Tag List:"
 	@cd repo/incubator-mesos; \
@@ -52,7 +58,6 @@ pull-mesos:
 	@cd repo/incubator-mesos; \
 		git pull --all; \
 		git fetch --tags;
-
 
 
 check-env:
