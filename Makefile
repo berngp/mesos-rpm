@@ -15,18 +15,50 @@
 # limitations under the License
 
 BASE_DIR	 =$(shell pwd)
-MESOS 		?=0.11.0-incubating-RC3
-BUILD_DIR	 =$(BASE_DIR)/builds/$(MESOS)
+BUILD_DIR	 =$(BASE_DIR)/build-spaces/$(MESOS_TAG)
 
-PHONY_TARGETS = boot
+.PHONY: build
 
-boot:
+build: check-env pull-mesos
 	@if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi
-	@if [ ! -d $(BUILD_DIR)/m4 ]; then mkdir -p $(BUILD_DIR)/m4; fi
+	@if [ ! -d $(BUILD_DIR)/m4 ];  then mkdir -p $(BUILD_DIR)/m4; fi
+	# Copy Mesos Codebase and checkout the specific tag.
+	@if [ -d $(BUILD_DIR)/tmp ]; then rm -rf $(BUILD_DIR)/tmp; fi
+	@mkdir $(BUILD_DIR)/tmp
+	@cp -r repo/incubator-mesos $(BUILD_DIR)/tmp
+	@cd $(BUILD_DIR)/tmp/incubator-mesos; \
+		git checkout $(MESOS_TAG); \
+		rm -rf .git;
+	# Tar the Tag
+	@cd $(BUILD_DIR)/tmp; \
+		mv incubator-mesos incubator-mesos-$(MESOS_TAG); \
+		tar cvfz incubator-mesos-$(MESOS_TAG).tgz . ; \
+	# Copy to sources.
+	@if [ -d $(BUILD_DIR)/src ]; then rm -rf $(BUILD_DIR)/src; fi
+	@mkdir $(BUILD_DIR)/src
+	@mv $(BUILD_DIR)/tmp/*.tgz $(BUILD_DIR)/src
+	# Copy templates.
 	@cp -r templates/* $(BUILD_DIR);
-	#@mkdir $(BUILD_DIR)/m4
-	@$( shell cd $(BUILD_DIR); ./bootstrap; )
+	@cd $(BUILD_DIR); \
+		./bootstrap
 
-#.PHONY: all 
+show-mesos-tags: pull-mesos
+	@echo "Incubator-Mesos Tag List:"
+	@cd repo/incubator-mesos; \
+		git tag --list
 
-.PHONY: $(PHONY_TARGETS)
+pull-mesos:
+	@echo "Pulling Incubator Mesos:"
+	@cd repo/incubator-mesos; \
+		git pull --all; \
+		git fetch --tags;
+
+
+
+check-env:
+ifndef MESOS_TAG
+		$(error MESOS_TAG is undefined please specify one. Tags Available)
+		$(MAKE) show-mesos-tags
+endif
+		@echo "MESOS_TAG:$(MESOS_TAG)"
+	

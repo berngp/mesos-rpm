@@ -1,14 +1,14 @@
 Name: apache-mesos
 #Conflicts: 
 #Obsoletes:
-Version: @MESOS_VERSION@
-Release: _guavus_@PACKAGE_VERSION@_%{?dist}
+Version: @RPM_MESOS_VERSION@
+Release: _guavus_@PACKAGE_VERSION@%{?BUILD_NUMBER}
 Summary: Mesos server, client shell and tools
 License: Apache 2.0
 URL: http://incubator.apache.org/mesos
 Group: Applications/System
 
-Source: @RPM_SOURCE_URL@
+Source0: @RPM_SOURCE_URL@
 Source1: rpm-sources.tar
 #Patch:
 Prefix: /usr/local/mesos
@@ -68,10 +68,21 @@ This package provides the mesos local software, default configuration files, and
 
 # %setup
 
-# %build
-# make
+%build
+%configure
+%{__make} %{?_smp_mflags}
 
-# %install
+%check
+%{__make} check
+
+%install
+%{__rm} -rf %{buildroot}
+%{__make} install DESTDIR="%{buildroot}"
+#find_lang %{real_name}
+
+%clean
+%{__rm} -rf %{buildroot}
+
 
 # mkdir -p $RPM_BUILD_ROOT/usr
 # cp -rv BINARIES/usr/bin $RPM_BUILD_ROOT/usr

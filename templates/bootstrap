@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo "Bootstrapping `pwd`"
 # Make sure that we are in the right directory.
 if test ! -f configure.ac; then
     cat >&2 <<__EOF__
@@ -28,9 +29,13 @@ autoreconf --install -Wall --verbose "${@}"
 export MESOS_VERSION=${MESOS_VERSION:-`basename $PWD`}
 ./configure
 
-# Create additional source files from template.
-tar -cvf SOURCES/rpm-sources.tar --exclude='*.in' -C rpm-sources .
+# Copy necessary RPM Sources.
+# --------------------------------------------
+# From pretared sources.
+cp -r src/* SOURCES/
+# From templates.
+# tar -cvf SOURCES/rpm-sources.tar --exclude='*.in' rpm-sources
 
 # Build RPM
-# rpmbuild --define '_topdir '`pwd` -ba SPECS/apache-mesos.spec
+# rpmbuild --define '_topdir '`pwd` -ba apache-mesos.spec
 
