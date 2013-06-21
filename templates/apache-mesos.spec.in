@@ -7,13 +7,16 @@ Summary: Mesos server, client shell and tools
 License: Apache 2.0
 URL: http://incubator.apache.org/mesos
 Group: Applications/System
-
 Source0: @RPM_SOURCE_URL@
-Prefix: /usr/local/mesos
+Prefix: @RPM_INSTALL_PREFIX@
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-
-#BuildRequires:
+BuildRequires: javac, python >= 2.4, git, automake, autoconf
 Requires(pre): shadow-utils
+# Sadly, Sun/Oracle JDK in RPM form doesn't provide libjvm.so, which means we have
+# to set AutoReq to no in order to minimize confusion. Not ideal, but seems to work.
+# I wish there was a way to disable just one auto dependency (libjvm.so)
+AutoReq: no
+Provides: @MESOS_PROJECT@
 
 Packager: Tech Team Guavus <tech@guavus.com>
 
@@ -64,6 +67,8 @@ Apache Mesos is a cluster manager that provides efficient resource isolation
 and sharing accross distrubted applications, or frameworks.
 
 This package provides the mesos local software, default configuration files, and init.d scripts.
+
+%prep
 
 %setup -n @ARTIFACT_NAME@
 %build
@@ -164,6 +169,7 @@ getent passwd mesosd >/dev/null || \
 %{_bindir}/mesos-local
 %{_bindir}/mesos-log
 %{_bindir}/mesos-mesos
+%{_datadir}/mesos
 %{_includedir}/mesos/executor.hpp
 %{_includedir}/mesos/mesos.hpp
 %{_includedir}/mesos/mesos.pb.h
@@ -175,12 +181,12 @@ getent passwd mesosd >/dev/null || \
 %{_libexecdir}/mesos/killtree.sh
 %{_libexecdir}/mesos/mesos-executor
 %{_libexecdir}/mesos/mesos-launcher
-%{_sbindir}/init.d-mesos-locald.sh
-%{_sbindir}/init.d-mesos-masterd.sh
-%{_sbindir}/init.d-mesos-slaved.sh
+%{_sbindir}/mesos-profile-env.sh
+%{_sbindir}/mesos-locald.sh
+%{_sbindir}/mesos-masterd.sh
+%{_sbindir}/mesos-slaved.sh
 %{_sbindir}/mesos-daemon.sh
 %{_sbindir}/mesos-master
-%{_sbindir}/mesos-profile-env.sh
 %{_sbindir}/mesos-slave
 %{_sbindir}/mesos-start-cluster.sh
 %{_sbindir}/mesos-start-masters.sh
@@ -188,15 +194,12 @@ getent passwd mesosd >/dev/null || \
 %{_sbindir}/mesos-stop-cluster.sh
 %{_sbindir}/mesos-stop-masters.sh
 %{_sbindir}/mesos-stop-slaves.sh
-%{_datadir}/mesos
-%{_datadir}/mesos
-%{_datadir}/mesos
 %{_localstatedir}/mesos/conf/mesos.conf.template
 %{_localstatedir}/mesos/deploy/mesos-deploy-env.sh.template
 
-%attr(0755,mesosd,mesosd) %dir %{_libdir}/libmesos-0.13.0.so
 %attr(0755,mesosd,mesosd) %dir %{_libdir}/libmesos.la
 %attr(0755,mesosd,mesosd) %dir %{_libdir}/libmesos.so
+
 #%attr(0755,mesosd,mesosd) %dir %{_localstatedir}/log/mesos
 #%attr(0640,mesosd,mesosd) %config(noreplace) %verify(not md5 size mtime) /var/log/mesos/mesos-locald.log
  
@@ -205,9 +208,6 @@ getent passwd mesosd >/dev/null || \
 #  #%{_mandir}/man1/mesos-local.1*
 #  #%{_mandir}/man1/mesos-master.1*
 #  #%{_mandir}/man1/mesos-slave.1*
-#  #%{_mandir}/man1/gdb-mesos-local.1*
-#  #%{_mandir}/man1/gdb-mesos-master.1*
-#  #%{_mandir}/man1/gdb-mesos-slave.1*
 #  
 #  %files master
 #  %defattr(-,root,root,-)

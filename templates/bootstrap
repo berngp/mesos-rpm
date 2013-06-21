@@ -27,7 +27,7 @@ autoreconf --install -Wall --verbose "${@}"
 
 # Configure this space.
 export MESOS_VERSION=${MESOS_VERSION:-`basename $PWD`}
-./configure
+./configure --prefix=@RPM_INSTALL_PREFIX@
 
 # Copy necessary RPM Sources.
 # --------------------------------------------
