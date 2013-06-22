@@ -2,7 +2,7 @@ Name: @MESOS_PROJECT@
 #Conflicts: 
 #Obsoletes:
 Version: @RPM_MESOS_VERSION@
-Release: r@PACKAGE_VERSION@%{?BUILD_NUMBER}
+Release: @RPM_QUALIFIER@-s@PACKAGE_VERSION@%{?BUILD_NUMBER}
 Summary: Mesos server, client shell and tools
 License: Apache 2.0
 URL: http://incubator.apache.org/mesos

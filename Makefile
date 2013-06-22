@@ -15,30 +15,12 @@
 # limitations under the License
 
 BASE_DIR	 =$(shell pwd)
-BUILD_DIR	 =$(BASE_DIR)/build-spaces/$(MESOS_TAG)
+BUILD_DIR	 =$(BASE_DIR)/build-spaces/$(BNAME)
 
 .PHONY: build
 
 build: check-env clone-mesos pull-mesos
-	@if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi
-	@if [ ! -d $(BUILD_DIR)/m4 ];  then mkdir -p $(BUILD_DIR)/m4; fi
-	# Copy Mesos Codebase and checkout the specific tag.
-	@if [ -d $(BUILD_DIR)/tmp ]; then rm -rf $(BUILD_DIR)/tmp; fi
-	@mkdir $(BUILD_DIR)/tmp
-	@cp -r repo/incubator-mesos $(BUILD_DIR)/tmp
-	@cd $(BUILD_DIR)/tmp/incubator-mesos; \
-		git checkout $(MESOS_TAG); \
-		rm -rf .git;
-	# Tar the Tag
-	@cd $(BUILD_DIR)/tmp; \
-		mv incubator-mesos incubator-mesos-$(MESOS_TAG); \
-		tar cvfz incubator-mesos-$(MESOS_TAG).tgz . ; \
-	# Copy to sources.
-	@if [ -d $(BUILD_DIR)/src ]; then rm -rf $(BUILD_DIR)/src; fi
-	@mkdir $(BUILD_DIR)/src
-	@mv $(BUILD_DIR)/tmp/*.tgz $(BUILD_DIR)/src
-	# Copy templates.
-	@cp -r templates/* $(BUILD_DIR);
+	./make-support/bootstrap-bspace.sh --build=$(BUILD_DIR) --branch=$(BRANCH) --tag=$(TAG) --commit=$(COMMIT)
 	@cd $(BUILD_DIR); \
 		./bootstrap
 
@@ -62,9 +44,9 @@ pull-mesos:
 
 
 check-env:
-ifndef MESOS_TAG
-		$(error MESOS_TAG is undefined please specify one. Tags Available)
+ifndef BNAME
+	$(error BNAME is undefined please specify one. Suggested:)
 		$(MAKE) show-mesos-tags
 endif
-		@echo "MESOS_TAG:$(MESOS_TAG)"
+		@echo "BUILD NAME:$(BNAME)"
 	

@@ -22,6 +22,9 @@ AC_INIT([incubator-mesos-rpm], [0.1.0])
 MESOS_PROJECT="incubator-mesos"
 RPM_INSTALL_PREFIX="/usr/local/$MESOS_PROJECT"
 
+AC_ARG_VAR([RPM_QUALIFIER],
+           ["RPM qualifier, e.g. the short version of hash that belongs to a git commit."])
+
 AC_ARG_VAR([MESOS_VERSION],
            ["Version of Mesos that we are going to use. e.g 0.11.0-incubating-RC3"])
 
@@ -31,18 +34,17 @@ else
     RPM_MESOS_VERSION="`echo $MESOS_VERSION| sed -e 's/-/_/g'`"
 fi
 
-ARTIFACT_NAME="$MESOS_PROJECT-$MESOS_VERSION"
-
 AC_ARG_VAR([RPM_SOURCE_URL],
-           ["Name of the file in SOURCE that we should build the rpm for, defaults to $ARTIFACT_NAME.tgz"])
+           ["Name of the file in SOURCE that we should build the rpm for, e.g. $MESOS_PROJECT.tgz"])
 
 if test "x$RPM_SOURCE_URL" = "x"; then
-    RPM_SOURCE_URL="$ARTIFACT_NAME.tgz"
+    RPM_SOURCE_URL="$MESOS_PROJECT.tgz"
 fi
 
 AC_SUBST(MESOS_PROJECT)
 AC_SUBST(MESOS_VERSION)
 AC_SUBST(RPM_MESOS_VERSION)
+AC_SUBST(RPM_QUALIFIER)
 AC_SUBST(RPM_SOURCE_URL)
 AC_SUBST(ARTIFACT_NAME)
 AC_SUBST(RPM_INSTALL_PREFIX)
