@@ -20,8 +20,10 @@ AC_PREREQ([2.61])
 AC_INIT([incubator-mesos-rpm], [0.1.0])
 
 MESOS_PROJECT="incubator-mesos"
-RPM_INSTALL_PREFIX="/usr/local/$MESOS_PROJECT"
+# Following GNU convention.
+RPM_INSTALL_PREFIX="/usr"
 
+# Make sure the RPM_QUALIFIER has no dashes `-`
 AC_ARG_VAR([RPM_QUALIFIER],
            ["RPM qualifier, e.g. the short version of hash that belongs to a git commit."])
 
