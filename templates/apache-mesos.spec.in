@@ -1,8 +1,8 @@
 Name: @MESOS_PROJECT@
 #Conflicts: 
 #Obsoletes:
-Version: @RPM_MESOS_VERSION@
-Release: @RPM_QUALIFIER@-s@PACKAGE_VERSION@%{?BUILD_NUMBER}
+Version: @MESOS_VERSION@_@RPM_MESOS_VERSION@
+Release: @RPM_QUALIFIER@_s@PACKAGE_VERSION@%{?BUILD_NUMBER}
 Summary: Mesos server, client shell and tools
 License: Apache 2.0
 URL: http://incubator.apache.org/mesos
@@ -10,7 +10,7 @@ Group: Applications/System
 Source0: @RPM_SOURCE_URL@
 Prefix: @RPM_INSTALL_PREFIX@
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-BuildRequires: javac, python >= 2.4, git, automake, autoconf
+BuildRequires: python >= 2.4, automake, autoconf
 Requires(pre): shadow-utils
 # Sadly, Sun/Oracle JDK in RPM form doesn't provide libjvm.so, which means we have
 # to set AutoReq to no in order to minimize confusion. Not ideal, but seems to work.
@@ -70,7 +70,7 @@ This package provides the mesos local software, default configuration files, and
 
 %prep
 
-%setup -n @ARTIFACT_NAME@
+%setup -n incubator-mesos
 %build
 ./bootstrap
 %configure
@@ -175,10 +175,6 @@ getent passwd mesosd >/dev/null || \
 %{_includedir}/mesos/mesos.pb.h
 %{_includedir}/mesos/mesos.proto
 %{_includedir}/mesos/scheduler.hpp
-%{_libdir}/libmesos-0.13.0.so
-%{_libdir}/libmesos.la
-%{_libdir}/libmesos.so
-%{_libexecdir}/mesos/killtree.sh
 %{_libexecdir}/mesos/mesos-executor
 %{_libexecdir}/mesos/mesos-launcher
 %{_sbindir}/mesos-profile-env.sh
@@ -194,9 +190,10 @@ getent passwd mesosd >/dev/null || \
 %{_sbindir}/mesos-stop-cluster.sh
 %{_sbindir}/mesos-stop-masters.sh
 %{_sbindir}/mesos-stop-slaves.sh
-%{_localstatedir}/mesos/conf/mesos.conf.template
-%{_localstatedir}/mesos/deploy/mesos-deploy-env.sh.template
+%{_localstatedir}/mesos
 
+# TODO define the libmesos version, e.g. 0.14.0, from a config argument..
+%attr(0755,mesosd,mesosd) %dir %{_libdir}/libmesos-0.14.0.so
 %attr(0755,mesosd,mesosd) %dir %{_libdir}/libmesos.la
 %attr(0755,mesosd,mesosd) %dir %{_libdir}/libmesos.so
 
