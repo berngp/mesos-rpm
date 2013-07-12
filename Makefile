@@ -19,7 +19,7 @@ BUILD_DIR	 =$(BASE_DIR)/build-spaces/$(BNAME)
 
 .PHONY: build
 
-build: check-env clone-mesos pull-mesos
+rpm: check-env clone-mesos pull-mesos
 	./make-support/bootstrap-bspace.sh --build=$(BUILD_DIR) --branch=$(BRANCH) --tag=$(TAG) --commit=$(COMMIT)
 	@cd $(BUILD_DIR); \
 		./bootstrap
