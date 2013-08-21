@@ -5,7 +5,7 @@ export REMOTE="origin"
 _DIR=`pwd`
 
 USAGE="
-Bootstraps a build space for the incubator-mesos project.\n
+Bootstraps a build space for the mesos project.\n
 options:\n
 \t-h, --help              show brief help\n
 \t--build=build_name      name of this build.\n
@@ -30,8 +30,8 @@ function run {
 }
 
 function _init_build_dir {
-    if [ ! -d repo/incubator-mesos ]; then
-        echo "The Git repository at repo/incubator-mesos is missing."
+    if [ ! -d repo/mesos ]; then
+        echo "The Git repository at repo/mesos is missing."
         exit 1
     fi
     
@@ -48,11 +48,11 @@ function _init_build_dir {
     fi
     mkdir "$BUILD_DIR/src"
 
-    cp -r repo/incubator-mesos $BUILD_DIR/tmp
+    cp -r repo/mesos $BUILD_DIR/tmp
 }
 
 function _set_git_baseline {
-    cd $BUILD_DIR/tmp/incubator-mesos
+    cd $BUILD_DIR/tmp/mesos
 
     if [  ! -z $TAG ]; then
         git checkout $TAG; 
@@ -72,11 +72,11 @@ function _set_git_baseline {
     # move back to $BUILD_DIR/tmp
     cd ../
     # tar contents in tmp.
-    tar cvfz incubator-mesos.tgz .
+    tar cvfz mesos.tgz .
     # save git qualifier
-    mv incubator-mesos/.git-qualifier ../
+    mv mesos/.git-qualifier ../
     # set source
-    mv incubator-mesos.tgz ../src
+    mv mesos.tgz ../src
     # move back to $BUILD_DIR
     cd $_DIR
     # remove tmp
