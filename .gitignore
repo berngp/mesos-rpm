@@ -1,3 +1,6 @@
+.vagrant
 .bkp
+*.rpm
+*.gz
 build-spaces
 repo
