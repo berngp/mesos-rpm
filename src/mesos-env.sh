@@ -25,14 +25,14 @@
 #exec_prefix=@exec_prefix@
 
 # Load external environments if available. 
-if   [ -x "$HOME/.mesos/env.sh" ] ; then
-    MESOS_ENV_SH="$HOME/.mesos/env.sh"
-elif [ -f "/etc/sysconfig/mesos.sh" ] ; then
-    MESOS_ENV_SH="/etc/sysconfig/mesos.sh"
+if   [ -e "$HOME/.mesos/$prog" ] ; then
+    MESOS_ENV_SH="$HOME/.mesos/$prog"
+elif [ -e "/etc/sysconfig/$prog" ] ; then
+    MESOS_ENV_SH="/etc/sysconfig/$prog"
 fi
 
 if [ -x "$MESOS_ENV_SH" ]; then
-    echo "MESOS Env Shell available at ${MESOS_ENV_SH}."
+    echo "MESOS Env found at [${MESOS_ENV_SH}]"
     source "$MESOS_ENV_SH"
 fi
 
@@ -51,7 +51,7 @@ fi
 if [ -f "/etc/mesos/$prog.conf"  ]; then
     CONFIGFILE="/etc/mesos/$prog.conf"
 else
-    CONFIGFILE="/etc/mesos/mesos.conf"
+    CONFIGFILE=""
 fi
 # Initialize the _Command_ options.
 #OPTIONS="--log_dir=$LOG_DIR"

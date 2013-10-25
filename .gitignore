@@ -4,3 +4,7 @@
 *.gz
 build-spaces
 repo
+.ruby-version
+.rbenv-gemsets
+Gemfile.lock
+build

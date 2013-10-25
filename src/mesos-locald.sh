@@ -24,9 +24,10 @@
 
 # chkconfig: 35 85 15
 # description: 
-# processname: mesos-locald 
-# config: /etc/mesos/mesos.conf
+# processname: mesos-local
+# config: /etc/mesos/mesos-local.conf
 # pidfile: /var/run/mesos-locald.pid
+
 . /etc/rc.d/init.d/functions
 
 # NOTE: if you change any OPTIONS here, you get what you pay for:
@@ -67,11 +68,13 @@ fi
 start() {
     [ -x $mesosd ] || exit 5
     echo -n $"Starting Mesos Local ($mesosd):"
-    touch "$OUT_FILE"
+
     if [ -n "$NUMACTL" ]; then
-        echo $"Running NUMA $NUMACTL"
+        echo -n $"Running NUMA $NUMACTL"
     fi
+
     daemonize -a -e "$OUT_FILE" -o "$OUT_FILE" -p "$PIDFILE" -l "$LOCKFILE" -u "$MESOS_USER" $NUMACTL $mesosd $OPTIONS
+    
     RETVAL=$?
     echo ""
     [ $RETVAL -eq 0 ] && touch "$LOCKFILE"

@@ -20,13 +20,14 @@
 # that first sets up environment variables as appropriate.
 
 
-# mesos-masterd - Startup script for Mesos Master
+# mesos-slaved - Startup script for Mesos Slave
 
 # chkconfig: 35 85 15
 # description: 
-# processname: mesos-masterd 
-# config: /etc/mesos/mesos.conf
-# pidfile: /var/run/mesos-masterd.pid
+# processname: mesos-slave
+# config: /etc/mesos-slave.conf
+# pidfile: /var/run/mesos-slaved.pid
+
 . /etc/rc.d/init.d/functions
 
 # NOTE: if you change any OPTIONS here, you get what you pay for:
@@ -48,7 +49,7 @@ done
 PRGDIR=`dirname "$PRG"`
 
 # Establish which Command we are going to run.
-mesosd=`which mesos-master`
+mesosd=`which mesos-slave`
 if [ ! -n "$mesosd" ]; then
    echo $"ERROR: It appears that the file $mesosd is unreachable or unexecutable."
    exit -1
@@ -66,12 +67,14 @@ fi
 
 start() {
     [ -x $mesosd ] || exit 5
-    echo -n $"Starting Mesos Master ($mesosd):"
-    touch "$OUT_FILE"
+    echo -n $"Starting Mesos Slave ($mesosd):"
+
     if [ -n "$NUMACTL" ]; then
-        echo $"Running NUMA $NUMACTL"
+        echo -n $"Running NUMA $NUMACTL"
     fi
+
     daemonize -a -e "$OUT_FILE" -o "$OUT_FILE" -p "$PIDFILE" -l "$LOCKFILE" -u "$MESOS_USER" $NUMACTL $mesosd $OPTIONS
+    
     RETVAL=$?
     echo ""
     [ $RETVAL -eq 0 ] && touch "$LOCKFILE"
@@ -79,7 +82,7 @@ start() {
 }
 
 stop() {
-    echo -n $"Stopping Mesos Master ($mesosd): "
+    echo -n $"Stopping Mesos Slave ($mesosd): "
     killproc $prog -SIGTERM
     RETVAL=$?
     echo

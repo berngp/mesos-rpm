@@ -1,49 +1,55 @@
-#%global commit             @COMMIT_HASH@
-%global  commit             58c4007450eb3541de0619e929dca386f81c60c3
-%global shortcommit         %(c=%{commit}; echo ${c:0:7})
-#%define mesos_ver          @MESOS_VERSION@ 
-%define mesos_ver           0.14.0
-#%define rel_ver            glabs_@BIULD_QUALIFIER@.%{shortcommit}%{?dist}
-%define rel_ver             glabs_rc2.%{shortcommit}%{?dist}
+%global commit             @COMMIT_HASH@
+%global shortcommit        %(c=%{commit}; echo ${c:0:7})
+%global build_qualifier    @BULD_QUALIFIER@
+%global build_num          @BUILD_NUM@
+%global jdk_home           @JDK_HOME@
+%global jdk_version        @JDK_VERSION@
+%global mesos_version      @PACKAGE_VERSION@
 
-%define full_ver            %{mesos_ver}-%{rel_ver}
+#./configure:PACKAGE_VERSION='0.15.0'
+%define rel_version         %{build_qualifier}%{build_num}.%{shortcommit}%{?dist}
+%define full_ver            %{mesos_version}-%{rel_version}
+
 %define _mesos_sysconfdir   %{_sysconfdir}/mesos
 %define _mesos_logdir       %{_localstatedir}/log/mesos
 
 
 Name:           mesos
-Version:        %{mesos_ver}
-Release:        %{rel_ver}
+Version:        %{mesos_version}
+Release:        %{rel_verersion}
 Summary:        Cluster manager that provides resource isolation and sharing distributed application frameworks
+                Notes:
+                Build for jdk %{jdk_version} and above.
 
 License:        ASL 2.0
 URL:            http://mesos.apache.org
 Group:          Applications/System
 
-Source0:        https://github.com/Guavus/mesos/archive/%{commit}/%{name}-%{version}-%{shortcommit}.tar.gz
+Source0:        %{name}-%{commit}
 Source1:        mesos-env.sh
 Source2:        mesos-masterd.sh
 Source3:        mesos-slaved.sh
 Source4:        mesos-locald.sh
-Source5:        mesos.conf
+Source5:        mesos-master.conf
+Source6:        mesos-slave.conf
+Source7:        mesos-local.conf
 
 Prefix:         /usr
     
 BuildRoot:      %{_tmppath}/%{name}-%{full_ver}-root
-BuildRequires:  automake,autoconf,python >= 2.4,python-devel,gcc,make,libtool,autoconf,libcurl-devel,zlib-devel,snappy-devel,openssl-devel
-Requires:       openssl,snappy,zlib,libcurl,daemonize
+BuildRequires:  automake,autoconf,python >= 2.4,python-devel,gcc,make,libtool,autoconf,libcurl-devel,zlib-devel,openssl-devel
+Requires:       openssl,zlib,libcurl,daemonize
 Requires(pre):  shadow-utils chkconfig initscripts
 Requires(post): chkconfig initscripts
 
 # For now we will disable checks.
 # Requires: logrotate, java
-# consider adding snappy and gflags as arpms and optinal dependencies.
 # consider adding google performance tools to the build as an optional dependency. ref. http://google-perftools.googlecode.com/svn/trunk/doc/cpuprofile.html
 AutoReq:    no
 
 Provides:   mesos
 
-Packager:   Guavuslabs Tech Team <devs@guavuslabs.com>
+Packager:   Guavus Labs Tech Team <labs@guavus.com>
 
 %description
 Cluster manager that provides resource isolation and sharing distributed application frameworks
@@ -59,7 +65,8 @@ Cluster manager that provides resource isolation and sharing distributed applica
 #aclocal
 #automake -a
 #autoreconf -vfi
-LIBS="${LIBS} -lsnappy"; export LIBS; %configure
+JAVA_HOME=%{java_home}; export JAVA_HOME;
+%configure
 %{__make} %{?_smp_mflags}
 
 %clean
@@ -83,7 +90,9 @@ install -p -D -m 755  %{S:1} %{buildroot}%{_sbindir}/mesos-env.sh
 install -p -D -m 755  %{S:2} %{buildroot}%{_sbindir}/mesos-masterd.sh 
 install -p -D -m 755  %{S:3} %{buildroot}%{_sbindir}/mesos-slaved.sh 
 install -p -D -m 755  %{S:4} %{buildroot}%{_sbindir}/mesos-locald.sh 
-install -p -D -m 644  %{S:5} %{buildroot}%{_mesos_sysconfdir}/mesos.conf
+install -p -D -m 444  %{S:5} %{buildroot}%{_mesos_sysconfdir}/templates/mesos-master.conf
+install -p -D -m 444  %{S:6} %{buildroot}%{_mesos_sysconfdir}/templates/mesos-slave.conf
+install -p -D -m 444  %{S:7} %{buildroot}%{_mesos_sysconfdir}/templates/mesos-local.conf
 
 install -d -m 755 %{buildroot}%{_mesos_logdir}
 

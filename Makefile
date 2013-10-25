@@ -27,25 +27,25 @@ rpm: check-env clone-mesos pull-mesos
 clone-mesos:
 	@if [ ! -d "repo" ]; then mkdir repo; fi
 	@cd repo; \
-		if [ ! -d "incubator-mesos" ]; then \
-			git clone git@github.com:Guavus/incubator-mesos.git; \
+		if [ ! -d "mesos" ]; then \
+			git clone git@github.com:Guavus/mesos.git; \
 		fi
 
 show-mesos-tags: pull-mesos
-	@echo "Incubator-Mesos Tag List:"
-	@cd repo/incubator-mesos; \
+	@echo "Mesos Tag List:"
+	@cd repo/mesos; \
 		git tag --list
 
 pull-mesos:
-	@echo "Pulling Incubator Mesos:"
-	@cd repo/incubator-mesos; \
+	@echo "Pulling Mesos:"
+	@cd repo/mesos; \
 		git pull --all; \
 		git fetch --tags;
 
 
 check-env:
-ifndef BNAME
-	$(error BNAME is undefined please specify one. Suggested:)
+ifndef BASE_NAME
+	$(error BASE_NAME is undefined! Please specify a Build Base Name aka BASE_NAME. Suggestions:)
 		$(MAKE) show-mesos-tags
 endif
 		@echo "BUILD NAME:$(BNAME)"

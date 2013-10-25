@@ -17,9 +17,9 @@
 # Generated with autoscan, then modified appropriately.
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.61])
-AC_INIT([incubator-mesos-rpm], [0.1.0])
+AC_INIT([mesos-rpm], [0.1.0])
 
-MESOS_PROJECT="incubator-mesos"
+MESOS_PROJECT="mesos"
 # Following GNU convention.
 RPM_INSTALL_PREFIX="/usr"
 

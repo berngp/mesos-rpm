@@ -38,7 +38,7 @@ autoreconf --install -Wall --verbose "${@}"
 
 # Configure this space.
 export MESOS_VERSION=${MESOS_VERSION:-`basename $PWD`}
-./configure --prefix=/usr
+./configure --prefix=/usr/local
 
 # Sources
 # =======
@@ -50,4 +50,4 @@ cp -r src/* SOURCES/
 
 # Build RPM
 # =========
-rpmbuild --define '_topdir '`pwd` -ba apache-mesos.spec
+#rpmbuild --define '_topdir '`pwd` -ba apache-mesos.spec
