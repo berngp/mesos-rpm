@@ -1,14 +1,12 @@
-%global commit             @COMMIT_HASH@
-%global shortcommit        %(c=%{commit}; echo ${c:0:7})
-%global build_qualifier    @BULD_QUALIFIER@
-%global build_num          @BUILD_NUM@
-%global jdk_home           @JDK_HOME@
-%global jdk_version        @JDK_VERSION@
-%global mesos_version      @PACKAGE_VERSION@
+%global remote_src_tar    %(echo "$REMOTE_SRC_TAR")
+%global remote_src_name   %(echo "$REMOTE_SRC_NAME")
+%global mesos_version     %(echo "$MESOS_VERSION")
+%global build_qualifier   %(echo "$BUILD_QUALIFIER")
+%global jdk_home          %(echo "$JDK_HOME")
+%global jdk_version       %(echo "$JDK_VERSION")
 
-#./configure:PACKAGE_VERSION='0.15.0'
-%define rel_version         %{build_qualifier}%{build_num}.%{shortcommit}%{?dist}
-%define full_ver            %{mesos_version}-%{rel_version}
+%define _rel_version         %{?build_qualifier}%{?dist}
+%define _full_ver            %{mesos_version}-%{rel_version}
 
 %define _mesos_sysconfdir   %{_sysconfdir}/mesos
 %define _mesos_logdir       %{_localstatedir}/log/mesos
@@ -16,16 +14,14 @@
 
 Name:           mesos
 Version:        %{mesos_version}
-Release:        %{rel_verersion}
-Summary:        Cluster manager that provides resource isolation and sharing distributed application frameworks
-                Notes:
-                Build for jdk %{jdk_version} and above.
+Release:        %{_rel_version}
+Summary:        Cluster manager that provides resource isolation and sharing distributed application frameworks. Build for jdk %{jdk_version} and above.
 
 License:        ASL 2.0
 URL:            http://mesos.apache.org
 Group:          Applications/System
 
-Source0:        %{name}-%{commit}
+Source0:        %{remote_src_tar}
 Source1:        mesos-env.sh
 Source2:        mesos-masterd.sh
 Source3:        mesos-slaved.sh
@@ -36,9 +32,9 @@ Source7:        mesos-local.conf
 
 Prefix:         /usr
     
-BuildRoot:      %{_tmppath}/%{name}-%{full_ver}-root
-BuildRequires:  automake,autoconf,python >= 2.4,python-devel,gcc,make,libtool,autoconf,libcurl-devel,zlib-devel,openssl-devel
-Requires:       openssl,zlib,libcurl,daemonize
+BuildRoot:      %{_tmppath}/%{name}-%{_full_ver}-root
+BuildRequires:  automake,autoconf,python >= 2.4,python-devel,gcc,make,libtool,autoconf,libcurl-devel,zlib-devel,openssl-devel,cyrus-sasl-devel
+Requires:       openssl,zlib,libcurl,daemonize,cyrus-sasl,cyrus-sasl-plain,cyrus-sasl-md5
 Requires(pre):  shadow-utils chkconfig initscripts
 Requires(post): chkconfig initscripts
 
@@ -56,7 +52,7 @@ Cluster manager that provides resource isolation and sharing distributed applica
 #@BUILD_DESCRIPTION@
 
 %prep
-%setup -q -n %{name}-%{commit}
+%setup -q -n %{remote_src_name}
 
 %build
 ./bootstrap
@@ -65,7 +61,7 @@ Cluster manager that provides resource isolation and sharing distributed applica
 #aclocal
 #automake -a
 #autoreconf -vfi
-JAVA_HOME=%{java_home}; export JAVA_HOME;
+JAVA_HOME=%{jdk_home}; export JAVA_HOME;
 %configure
 %{__make} %{?_smp_mflags}
 
