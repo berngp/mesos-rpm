@@ -29,15 +29,15 @@ Note that the given JAVA_HOME environment variable is required and will be used 
 Your JAVA_HOME currently points to [$JAVA_HOME].\n
 \n
 options:\n
-\t-h|--help     Show this help\n
-\t-d|--dir      Path to the build directory. Defaults to ./build.\n
-\t-c|--commit   Git commit that the build will be based on, if non specified we use HEAD. \n
-\t-t|--tag      Git tag that the build will be based on. Used to qualify the build.\n
-\t-s|--spec     Spec file that will be used for the build. The file shoudl be available at ./specs.\n
-\t--debug       Flag to enable debug.\n
-\t--hashq       Flag that tells the build to including Commit Hash as part of the build qualifier.\n
-\t--buildnumq   Flat that tells the build to including the Build Number (\$BUILD_NUMBER) as part of the build qualifier.\n
-\t--command     Command that will be executed, by default executes the mock-flow command, full list of commands:\n
+\t-h|--help     \tShow this help\n
+\t-d|--dir      \tPath to the build directory. Defaults to ./build.\n
+\t-c|--commit   \tGit commit that the build will be based on, if non specified we use HEAD. \n
+\t-t|--tag      \tGit tag that the build will be based on. Used to qualify the build too.\n
+\t-s|--spec     \tSpec file that will be used for the build. The file shoudl be available at ./specs.\n
+\t--debug       \tFlag to enable debug.\n
+\t--hashq       \tFlag that tells the build to including Commit Hash as part of the build qualifier.\n
+\t--buildnumq   \tFlag that tells the build to including the Build Number as part of the qualifier, the build number is taken form the BUILD_NUMBER ENV.\n
+\t--command     \tCommand that will be executed, by default executes the mock-flow command, full list of commands:\n
 \t\tinit-rpm     \tInitializes the build directory structure. See -d|--dir to define your build directory.\n
 \t\tbuild-srpm   \tBuilds a Source RPM, the sources is downloaded from $GIT_SOURCE_URL according the given commit, see the --commit argument.\n
 \t\tbuild-rpm    \tBuilds a Binary and Source RPMs, sources are obtained following the same approach as the build-srpm command.\n
@@ -46,11 +46,11 @@ options:\n
 \t\tmock-clean   \tCleans the Mock Chroot environment. Requires root.\n
 \t\tmock-flow    \tExecutes mock-rebuild and if successful a mock-clean. Requires root.\n
 \n
-This scripts depends on: awk, grep, perl, sed\n
-\n\n
-Last updated on 10/30/2013\n
-Authors:
-    -- Bernardo Gomez Palacio <bernardo.gomezpalacio@guavus.com>
+This scripts depends on: awk, grep, mock, perl, rpmbuild, sed\n
+\n
+Last updated on 10/30/2013\n\n
+Authors:\n
+    -- Bernardo Gomez Palacio <bernardo.gomezpalacio@guavus.com>\n
 \n
 "
 
