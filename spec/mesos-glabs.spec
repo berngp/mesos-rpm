@@ -62,7 +62,6 @@ BuildRequires:  java-devel
 Requires:  openssl
 Requires:  zlib
 Requires:  libcurl  
-Requires:  cyrus
 Requires:  cyrus-sasl
 Requires:  cyrus-sasl-md5
 Requires:  cyrus-sasl-plain
