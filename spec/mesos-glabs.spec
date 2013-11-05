@@ -33,10 +33,44 @@ Source7:        mesos-local.conf
 Prefix:         /usr
     
 BuildRoot:      %{_tmppath}/%{name}-%{_full_ver}-root
-BuildRequires:  automake,autoconf,python >= 2.4,python-devel,gcc,make,libtool,autoconf,libcurl-devel,zlib-devel,openssl-devel,cyrus-sasl-devel
-Requires:       openssl,zlib,libcurl,daemonize,cyrus-sasl,cyrus-sasl-plain,cyrus-sasl-md5
-Requires(pre):  shadow-utils chkconfig initscripts
-Requires(post): chkconfig initscripts
+BuildRequires:  libtool
+BuildRequires:  automake
+BuildRequires:  autoconf
+BuildRequires:  libcurl-devel
+BuildRequires:  zlib-devel
+BuildRequires:  http-parser-devel
+BuildRequires:  gmock-devel
+BuildRequires:  gtest-devel
+BuildRequires:  gperftools-devel
+BuildRequires:  libev-devel
+BuildRequires:  leveldb-devel
+BuildRequires:  protobuf-devel
+BuildRequires:  python
+BuildRequires:  python-boto
+BuildRequires:  python-setuptools
+# Apparently we need protobuf-python 2.4 or above to make the test pass.
+#BuildRequires:  protobuf-python
+#BuildRequires:  protobuf-java
+BuildRequires:  python-devel
+BuildRequires:  openssl-devel
+BuildRequires:  cyrus-sasl-devel
+BuildRequires:  cyrus-sasl-md5
+BuildRequires:  cyrus-sasl-plain
+BuildRequires:  java-devel
+#BuildRequires:  systemd
+
+Requires:  openssl
+Requires:  zlib
+Requires:  libcurl  
+Requires:  cyrus
+Requires:  cyrus-sasl
+Requires:  cyrus-sasl-md5
+Requires:  cyrus-sasl-plain
+Requires:  daemonize
+
+Requires(pre):  chkconfig
+Requires(pre):  initscripts
+Requires(pre):  shadow-utils
 
 # For now we will disable checks.
 # Requires: logrotate, java
@@ -56,22 +90,23 @@ Cluster manager that provides resource isolation and sharing distributed applica
 
 %build
 ./bootstrap
-#autoheader
-#libtoolize --force
-#aclocal
-#automake -a
-#autoreconf -vfi
 JAVA_HOME=%{jdk_home}; export JAVA_HOME;
-%configure
+%configure --disable-static
 %{__make} %{?_smp_mflags}
 
 %clean
 rm -rf %{buildroot}
 
 %check
-GLOG_minloglevel=0; export GLOG_minloglevel;
+MESOS_VERBOSE=1; export MESOS_VERBOSE
+GLOG_v=1; export GLOG;
 GLOG_logtostderr=true; export GLOG_logtostderr;
-%{__make} check
+
+# Skipping FsTest since they currently fail in a Mock (Chroot) environment since
+# structure describing a mount table (e.g. /etc/mtab or /proc/mounts).
+GTEST_FILTER="-FsTest.*"; export GTEST_FILTER
+
+%{__make} check GTEST_FILTER="$GTEST_FILTER"
 
 #TODO - systemd integration
 %pre
@@ -97,8 +132,9 @@ mv -f %{buildroot}%{_var}/mesos/deploy %{buildroot}%{_datadir}/mesos/
 
 %files
 %defattr(-,root,root,-)
-%doc LICENSE README
+%doc LICENSE README.md
 %{_libdir}/libmesos*.so
+%{_bindir}/mesos-*
 %{_bindir}/mesos-*
 %{_sbindir}/mesos-*
 %{_datadir}/mesos/
@@ -107,12 +143,28 @@ mv -f %{buildroot}%{_var}/mesos/deploy %{buildroot}%{_datadir}/mesos/
 %{_mesos_logdir}/
 
 #===============================================================================================
+# Command Tool
+#===============================================================================================
+%package -n mesos-cli
+Summary: Mesos Command Line Utility
+Group: Applications/System
+Requires: mesos
+
+%description -n mesos-cli
+Mesos Command Line Utility
+
+%files -n mesos-cli
+%defattr(-, root, root, -)
+%{_bindir}/mesos
+
+
+#===============================================================================================
 # Master
 #===============================================================================================
 %package -n mesos-master
 Summary: mesos master
 Group: Applications/System
-Requires: mesos
+Requires: mesos-cli
 
 %description -n mesos-master
 Mesos Master as a Service.
@@ -174,7 +226,7 @@ fi
 %package -n mesos-local
 Summary: mesos-local
 Group: Applications/System
-Requires: mesos
+Requires: mesos-cli
 
 %description -n mesos-local
 Mesos Local as a Service.
@@ -217,6 +269,12 @@ developing with mesos.
 
 
 %changelog
+* Mon Nov 5 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+- Added the Mesos CLI tool as is now available in version 0.16.0. This means that this spec works with Mesos versions 0.16.0 and above.
+
+* Mon Nov 4 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+- Package restructuring based on the work that Timothy St. Clair <tstclair@redhat.com> put into <https://github.com/timothysc/mesos-rpm>
+
 * Wed Aug 28 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
 - Adding the daemon scripts and init.d setup for mesos-master, mesos-slave and mesos-local.
 
