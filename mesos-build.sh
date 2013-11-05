@@ -32,7 +32,7 @@ options:\n
 \t-h|--help     \tShow this help\n
 \t-d|--dir      \tPath to the build directory. Defaults to ./build.\n
 \t-c|--commit   \tGit commit that the build will be based on, if non specified we use HEAD. \n
-\t-t|--tag      \tGit tag that the build will be based on. Used to qualify the build too.\n
+\t-q|--qualifier\tBuild qualifier, e.g. rc1.\n
 \t-s|--spec     \tSpec file that will be used for the build. The file shoudl be available at ./specs.\n
 \t--debug       \tFlag to enable debug.\n
 \t--hashq       \tFlag that tells the build to including Commit Hash as part of the build qualifier.\n
@@ -105,10 +105,9 @@ function _get_mesos_version {
 
 function _get_src_from_github {
     _name=${1:-mesos}
-    _tag=${2:-HEAD}
-    _commit=${3:-HEAD}
+    _commit=${2:-HEAD}
 
-    _file="${_name}-${_tag}-${_commit}.tar.gz"
+    _file="${_name}-${_commit}.tar.gz"
 
     _src_holder="${BUILD_DIR}/remote_src"
     if [ -d $_src_holder  ]; then
@@ -154,8 +153,6 @@ function _get_src_from_github {
     fi
 }
 
-
-
 function _get_jdk_version {
     [ ! -x "$1/bin/java" ] && error_exit "Unable to execute [$1/bin/java] !"
 
@@ -167,7 +164,7 @@ function cmd_init-rpm {
     _init_build_dir
 
     if [ ! -f "${BUILD_DIR}/$_REMOTE_SRC_FILE_F" ]; then
-        _remote_src_name="$(_get_src_from_github $REPO_NAME $TAG $COMMIT)"
+        _remote_src_name="$(_get_src_from_github $REPO_NAME $COMMIT)"
     fi
 
     if [ -f "${BUILD_DIR}/$_REMOTE_SRC_TAR_F" ]; then
@@ -199,11 +196,16 @@ function cmd_init-rpm {
     debug_msg "Resolved Mesos Version [$_mesos_version]"
 
 
-    _build_qualifier="${TAG}"
+    _build_qualifier="${QUALIFIER}"
+
+    if [ -z "${_build_qualifier}" ]; then
+        _build_qualifier="n"
+        _INC_HASH_QUALIFIER=1
+    fi
 
     if [ $_INC_BUILDNUM_QUALIFIER -eq 1 ]; then
         [ -z "$_build_qualifier" ] && _build_qualifier="build" 
-        _build_qualifier="${_build_qualifier}.${BUILD_NUMBER:-na}"
+        _build_qualifier="${_build_qualifier}.b${BUILD_NUMBER:-na}"
     fi
 
     if [ $_INC_HASH_QUALIFIER -eq 1 ]; then
@@ -213,10 +215,10 @@ function cmd_init-rpm {
     debug_msg "Build qualifier resolved to [$_build_qualifier]"
 
     _jdk_home="$JAVA_HOME"
-    debug_msg "JDK Home resolved to [$_jdk_home]"
+    info_msg "JDK Home resolved to [$_jdk_home]"
 
     _jdk_version="$(_get_jdk_version "$_jdk_home")"
-    debug_msg "JDK Version resolved to [$_jdk_version]"
+    info_msg "JDK Version resolved to [$_jdk_version]"
 
     echo "
 export REMOTE_SRC_TAR=\"${_remote_src_tar}\"
@@ -299,7 +301,10 @@ function cmd_mock-rebuild {
     [ -d "$_mock_rslt_d" ] && rm -rf "$_mock_rslt_d"
     mkdir -p "$_mock_rslt_d"
 
-    msg="$(mock --rebuild --no-clean --no-cleanup-after --resultdir="$_mock_rslt_d" --verbose -- "$_srpm_path")"
+    _mock_opt="--rebuild --no-clean --no-cleanup-after --resultdir=$_mock_rslt_d"
+    [ $_DEBUG -eq 1 ] && _mock_opt="$_mock_opt --verbose" 
+
+    msg="$(mock $_mock_opt -- "$_srpm_path")"
     _out=$?
 
     info_msg "Mock: $msg"
@@ -308,7 +313,12 @@ function cmd_mock-rebuild {
 }
 
 function cmd_mock-clean {
-    mock clean
+    mock --clean
+}
+
+function cmd_clean {
+    [ -d "$BUILD_DIR" ] && rm -r "$BUILD_DIR"
+    mock --clean
 }
 
 function cmd_mock-flow {
@@ -319,7 +329,7 @@ function cmd_mock-flow {
         info_msg "Mock Rebuild was succesful, proceeding to cleaning.."
         cmd_mock-clean
     else
-        error_msg "Mock Rebuild didn't finish as expected, the mock shell wasn't clean. Please review and debug."
+        error_exit "Mock Rebuild didn't finish as expected, the mock shell wasn't clean. Please review and debug."
     fi
 }
 
@@ -362,10 +372,12 @@ while test $# -gt 0; do
             ;;
         -c|--commit*)
             export COMMIT=`echo $1 | sed -e 's/^[^=]*=//g'`
+            info_msg "Commit $COMMIT"
             shift
             ;;
-        -t|--tag*)
-            export TAG=`echo $1 | sed -e 's/^[^=]*=//g'`
+        -q|--qualifier*)
+            export QUALIFIER=`echo $1 | sed -e 's/^[^=]*=//g'`
+            info_msg "Qualifier $QUALIFIER"
             shift
             ;;
         -s|--spec*)
