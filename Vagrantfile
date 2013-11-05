@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
   # config.berkshelf.except = []
   
   config.vm.provider :virtualbox do |vb|
-     vb.customize ["modifyvm", :id, "--memory", "2024"]
+     vb.customize ["modifyvm", :id, "--memory", "5108"]
   end
 
   config.vm.provision :chef_solo do |chef|
