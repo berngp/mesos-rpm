@@ -307,7 +307,7 @@ function cmd_mock-rebuild {
     _mock_opt="--rebuild --no-clean --no-cleanup-after --resultdir=$_mock_rslt_d"
     [ $_DEBUG -eq 1 ] && _mock_opt="$_mock_opt --verbose" 
 
-    msg="$(mock $_mock_opt -- "$_srpm_path")"
+    msg="$($_mock_cmd $_mock_opt -- "$_srpm_path")"
     _out=$?
 
     info_msg "Mock: $msg"
