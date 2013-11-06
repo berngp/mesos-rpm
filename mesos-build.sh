@@ -9,6 +9,9 @@ REPO_NAME="mesos"
 REMOTE_REPO="github"
 BUILD_DIR="`pwd`/build"
 GIT_SOURCE_URL="https://github.com/apache/mesos/archive"
+MOCK_CMD="/usr/bin/mock"
+
+_mock_cmd="$MOCK_CMD"
 
 # Internal Flags
 _DEBUG=0
@@ -272,18 +275,18 @@ function cmd_mock-init {
     fi
     debug_msg "SRPM Path : $_srpm_path"
 
-    mock init
+    $_mock_cmd init
     debug_msg "Mock environment initialized."
     
     $( source "$BUILD_DIR/spec-env.sh";
-        mock --copyin "$JAVA_HOME" "$JAVA_HOME";
+        $_mock_cmd --copyin "$JAVA_HOME" "$JAVA_HOME";
         debug_msg "Mock: JAVA_HOME [$JAVA_HOME] copied." )
 
-    mock --copyin "$BUILD_DIR/spec-env.sh" "/etc/profile.d/spec-env.sh"
+    $_mock_cmd --copyin "$BUILD_DIR/spec-env.sh" "/etc/profile.d/spec-env.sh"
     debug_msg "Mock: spec-env.sh copied."
 
     debug_msg "Mock: Installing dependencies as defined by the SRPM $_srpm_path"
-    mock --installdeps "$_srpm_path"
+    $_mock_cmd --installdeps "$_srpm_path"
 }
 
 function cmd_mock-rebuild {
@@ -313,12 +316,12 @@ function cmd_mock-rebuild {
 }
 
 function cmd_mock-clean {
-    mock --clean
+    $_mock_cmd --clean
 }
 
 function cmd_clean {
     [ -d "$BUILD_DIR" ] && rm -r "$BUILD_DIR"
-    mock --clean
+    $_mock_cmd --clean
 }
 
 function cmd_mock-flow {
