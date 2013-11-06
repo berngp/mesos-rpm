@@ -76,8 +76,13 @@ start() {
     daemonize -a -e "$OUT_FILE" -o "$OUT_FILE" -p "$PIDFILE" -l "$LOCKFILE" -u "$MESOS_USER" $NUMACTL $mesosd $OPTIONS
 
     RETVAL=$?
-    echo ""
-    [ $RETVAL -eq 0 ] && touch "$LOCKFILE"
+    if [ $RETVAL -eq 0 ]; then
+        touch "$LOCKFILE"
+        success
+    else
+        failure
+    fi
+    echo
     return $RETVAL
 }
 
@@ -85,8 +90,8 @@ stop() {
     echo -n $"Stopping Mesos Master ($mesosd): "
     killproc $prog -SIGTERM
     RETVAL=$?
-    echo
     [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+    echo
     return $retval
 }
 
@@ -100,7 +105,8 @@ reload() {
     echo -n $"Reloading $prog: "
     killproc $prog -HUP
     RETVAL=$?
-    echo ""
+    echo 
+    return $RETVAL
 }
 
 force_reload() {
