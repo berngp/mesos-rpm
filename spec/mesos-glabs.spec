@@ -56,7 +56,7 @@ BuildRequires:  openssl-devel
 BuildRequires:  cyrus-sasl-devel
 BuildRequires:  cyrus-sasl-md5
 BuildRequires:  cyrus-sasl-plain
-BuildRequires:  java-devel
+#BuildRequires:  java-devel
 #BuildRequires:  systemd
 
 Requires:  openssl
