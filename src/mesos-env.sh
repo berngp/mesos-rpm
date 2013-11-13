@@ -31,7 +31,7 @@ elif [ -e "/etc/sysconfig/$prog" ] ; then
     MESOS_ENV_SH="/etc/sysconfig/$prog"
 fi
 
-if [ -x "$MESOS_ENV_SH" ]; then
+if [ -e "$MESOS_ENV_SH" ]; then
     echo "MESOS Env found at [${MESOS_ENV_SH}]"
     source "$MESOS_ENV_SH"
 fi
