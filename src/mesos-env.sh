@@ -21,8 +21,24 @@
 # It sets environment variables so Mesos will search for uninstalled
 # dependencies (such as the WebUI) rather than looking in installed locations.
 
-#prefix=@prefix@
-#exec_prefix=@exec_prefix@
+_DEBUG=${_DEBUG:-0}
+
+function debug_msg {
+    [ $_DEBUG -eq 1 ] && echo -e "[DEBUG]: $1"
+}
+
+function info_msg {
+    echo -e "[INFO]: $1"
+}
+
+function warn_msg {
+    echo -e "[WARN]: $1"
+}
+
+function error_exit {
+    echo -e "[ERROR]: ${1:-"Unknown Error"}" 1>&2
+    exit 1
+}
 
 # Load external environments if available. 
 if   [ -e "$HOME/.mesos/$prog" ] ; then
@@ -34,6 +50,29 @@ fi
 if [ -e "$MESOS_ENV_SH" ]; then
     echo "MESOS Env found at [${MESOS_ENV_SH}]"
     source "$MESOS_ENV_SH"
+fi
+
+# Load the JAVA LIBJVM into the LD_LIBRARY_PATH
+ARCH="`uname -p`"
+case "$ARCH" in
+    "x86_64")
+        JDK_ARCH="amd64";;
+    *)
+        JDK_ARCH="$ARCH";;
+esac
+
+if [ -d "$JAVA_HOME/jre/lib/$JDK_ARCH" ]; then
+    _LD_LIBRARY_PATH="$JAVA_HOME/bin"
+    _LD_LIBRARY_PATH="$_LD_LIBRARY_PATH:$JAVA_HOME/jre/lib"
+    _LD_LIBRARY_PATH="$_LD_LIBRARY_PATH:$JAVA_HOME/jre/lib/$JDK_ARCH"
+    _LD_LIBRARY_PATH="$_LD_LIBRARY_PATH:$JAVA_HOME/jre/lib/$JDK_ARCH/server"
+
+    LD_LIBRARY_PATH="$_LD_LIBRARY_PATH:$LD_LIBRARY_PATH"
+    debug_msg "LD_LIBRARY_PATH set to $LD_LIBRARY_PATH"
+
+    export LD_LIBRARY_PATH
+else
+    error_exit "Make sure your JAVA_HOME is a valid JDK for your arch ${ARCH}! [Not Found] $JAVA_HOME/jre/lib/$JDK_ARCH"
 fi
 
 # Account used to start the process.
