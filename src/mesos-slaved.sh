@@ -35,6 +35,8 @@
 
 PRG="$0"
 
+declare -i do_daemonize=1
+
 while [ -h "$PRG" ]; do
   ls=`ls -ld "$PRG"`
   link=`expr "$ls" : '.*-> \(.*\)$'`
@@ -65,28 +67,32 @@ else
     exit -1
 fi
 
-start() {
+function start()
+{
     [ -x $mesosd ] || exit 5
     echo -n $"Starting Mesos Slave ($mesosd):"
 
-    if [ -n "$NUMACTL" ]; then
-        echo -n $"Running NUMA $NUMACTL"
+    if [[ $do_daemonize -eq 1 ]]; then
+      daemonize -a -e "$OUT_FILE" -o "$OUT_FILE" -p "$PIDFILE" -l "$LOCKFILE" -u "$MESOS_USER" $NUMACTL $mesosd $OPTIONS
+      
+      RETVAL=$?
+      if [ $RETVAL -eq 0 ]; then
+          touch "$LOCKFILE"
+          success
+      else
+          failure
+      fi
+
+    else
+      su -u "$MESOS_USER" -c "$NUMACTL $mesosd $OPTIONS"
     fi
 
-    daemonize -a -e "$OUT_FILE" -o "$OUT_FILE" -p "$PIDFILE" -l "$LOCKFILE" -u "$MESOS_USER" $NUMACTL $mesosd $OPTIONS
-    
-    RETVAL=$?
-    if [ $RETVAL -eq 0 ]; then
-        touch "$LOCKFILE"
-        success
-    else
-        failure
-    fi
     echo
     return $RETVAL
 }
 
-stop() {
+function stop()
+{
     echo -n $"Stopping Mesos Slave ($mesosd): "
     killproc $prog -SIGTERM
     RETVAL=$?
@@ -96,12 +102,14 @@ stop() {
 }
 
 
-restart() {
+function restart()
+{
     stop
     start
 }
 
-reload() {
+function reload()
+{
     echo -n $"Reloading $prog: "
     killproc $prog -HUP
     RETVAL=$?
@@ -109,41 +117,49 @@ reload() {
     return $RETVAL
 }
 
-force_reload() {
+function force_reload()
+{
     restart
 }
  
-rh_status() {
+function rh_status()
+{
     status $prog
 }
  
-rh_status_q() {
+function rh_status_q()
+{
     rh_status >/dev/null 2>&1
 }
 
 ulimit -n 12000
 RETVAL=0
 
-case "$1" in
-  start)
-    start
-    ;;
-  stop)
-    stop
-    ;;
-  restart|reload|force-reload)
-    restart
-    ;;
-  condrestart)
-    [ -f "$LOCKFILE" ] && restart || :
-    ;;
-  status)
-    status $mesosd
-    RETVAL=$?
-    ;;
-  *)
-    echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
-    RETVAL=1
-esac
+while test $# -gt 0; do
+  case "$1" in
+    --no-daemonize)
+      do_daemonize=0 && shift ;;
+    start)
+      start
+      ;;
+    stop)
+      stop
+      ;;
+    restart|reload|force-reload)
+      restart
+      ;;
+    condrestart)
+      [ -f "$LOCKFILE" ] && restart || :
+      ;;
+    status)
+      status $mesosd
+      RETVAL=$?
+      ;;
+    *)
+      echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
+      RETVAL=1
+  esac
+done
+
 
 exit $RETVAL
