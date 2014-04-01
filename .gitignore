@@ -8,3 +8,5 @@ repo
 .rbenv-gemsets
 Gemfile.lock
 build
+.kitchen/
+.kitchen.local.yml

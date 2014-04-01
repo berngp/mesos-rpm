@@ -78,7 +78,7 @@ AutoReq:    no
 
 Provides:   mesos
 
-Packager:   Guavus Labs Tech Team <labs@guavus.com>
+Packager:   Bernardo Gomez Palacio <bernardo.gomezpalacio@gmail.com>
 
 %description
 Cluster manager that provides resource isolation and sharing distributed application frameworks
@@ -268,15 +268,15 @@ developing with mesos.
 
 
 %changelog
-* Mon Nov 5 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+* Mon Nov 5 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@gmail.com>
 - Added the Mesos CLI tool as is now available in version 0.16.0. This means that this spec works with Mesos versions 0.16.0 and above.
 
-* Mon Nov 4 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+* Mon Nov 4 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@gmail.com>
 - Package restructuring based on the work that Timothy St. Clair <tstclair@redhat.com> put into <https://github.com/timothysc/mesos-rpm>
 
-* Wed Aug 28 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+* Wed Aug 28 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@gmail.com>
 - Adding the daemon scripts and init.d setup for mesos-master, mesos-slave and mesos-local.
 
-* Mon Aug 19 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@guavus.com>
+* Mon Aug 19 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@gmail.com>
 - Wrote mesos.spec based on Tomothy St. Clair mesos.spec at 
 # todo insert git tag description and potentially cat some changelog from the repo.

@@ -1,0 +1,516 @@
+#!/bin/bash
+
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+SPEC="mesos-glabs.spec"
+
+REPO_NAME="${REPO_NAME:-mesos}"
+BUILD_DIR="${BUILD_DIR:-`pwd`/build}"
+GITHUB_SRC_URL="${GITHUB_SRC_URL:-https://github.com/apache/mesos/archive}"
+GITHUB_TAG_API="${GITHUB_TAG_API:-https://api.github.com/repos/apache/mesos/git/refs/tags}"
+
+_mock_cmd="${MOCK_CMD:-/usr/bin/mock}"
+
+# Internal Flags
+declare -i _verbose=0
+declare -i _hash_qualifier=0
+declare -i _buildnum_qualifier=0
+
+declare -a _cmd_stack
+declare -a _func_stack
+
+# Reference Hidden Files.
+_REMOTE_SRC_FILE_F=".remote-src"
+_REMOTE_SRC_TAR_F=".remote-tar"
+_COMMIT_HASH_F=".commit-hash"
+_MESOS_V_F=".mesos-version"
+_MESOS_SRPM_F=".mesos-srpm"
+
+function push_cmd
+{
+    _cmd_stack=( "${_cmds[@]}" "$1" )
+}
+
+function call_cmds
+{
+    for _cmd in "${_cmd_stack[@]}"; do
+        $_cmd
+    done
+}
+
+function push_pre_fun
+{
+    _func_stack=( "${_fun_stack[@]}" "$1" )
+}
+
+function call_pre_funs()
+{
+    for _fun  in "${_func_stack[@]}"; do
+        $_fun
+    done
+}
+
+function dlog
+{
+    [ $_verbose -eq 1 ] && echo -e "DEBUG: $1"
+}
+
+function ilog
+{
+    echo -e "INFO: $1"
+}
+
+function wlog
+{
+    echo -e "WARN: $1"
+}
+
+function error_exit
+{
+    echo -e "ERROR: ${1:-"Unknown Error"}" 1>&2
+    exit 1
+}
+
+function init_build_dir
+{
+    mkdir -p "$BUILD_DIR/BUILD"
+    mkdir -p "$BUILD_DIR/RPMS"
+    mkdir -p "$BUILD_DIR/SOURCES"
+    mkdir -p "$BUILD_DIR/SPECS"
+    mkdir -p "$BUILD_DIR/SRPMS"
+
+    [ -z "$SPEC" ] && error_exit "No spec file defined!"
+
+    local _spec_file="spec/${SPEC}"
+
+    [ ! -f "$_spec_file" ] && error_exit "Spec file $_spec_file not found!"
+
+    cp $_spec_file "$BUILD_DIR/SPECS/mesos.spec"
+
+    ilog "RPM spec file set to $SPEC"
+    # copy additional sources 
+    cp -r src/* "$BUILD_DIR/SOURCES"
+}
+
+function get_mesos_version
+{
+    local _mesos_configure_f="$1/configure.ac"
+    [ ! -f "$_mesos_configure_f"  ] && error_exit "No configure.ac file available at $1"
+
+    local _mesos_version="$(perl -wn -e '/AC_INIT\(\[mesos\], \[([\d.]+)\]\)/ && print $1 and close $ARGV' $_mesos_configure_f)"
+    [ -z "$_mesos_version" ] && error_exit "Unable to resolve the Apache Mesos version from $_mesos_configure_f !"
+
+    echo "$_mesos_version"
+}
+
+function set_hash_from_tag
+{
+    local _tag="${TAG}"
+    [ -z "$_tag" ] && error_exit "No tag was found specified!"
+   
+    local _tag_url="$GITHUB_TAG_API/$_tag"
+
+    ilog "Resolving tag from $_tag_url"
+    local _hash="$(curl -L "$_tag_url" | perl -nlw -e '/"sha"\s*:\s*"([\d\w]+)"/ and print $1')"
+    [ -z "$_hash" ] && error_exit "Unable to obtain the hash for tag $_tag using $_tag_url"
+
+    ilog "Tag $_tag resolved to hash $_hash"
+    export HASH="$_hash"
+    echo "$_hash"
+}
+
+function get_src_from_github
+{
+    local _name=${1:-mesos}
+    local _commit=${2:-HEAD}
+    local _file="${_name}-${_commit}.tar.gz"
+    local _src_holder="${BUILD_DIR}/remote_src"
+    local _remote_path="$GITHUB_SRC_URL/${_commit}/${_file}"
+
+    if [ -d $_src_holder  ]; then
+        rm -rf $_src_holder
+    fi
+
+    mkdir -p $_src_holder
+
+    ilog "Downloading $_remote_path "
+    curl -L "$_remote_path" > "${_src_holder}/${_file}"
+
+    if [ -f "$_src_holder/$_file" ]; then
+        dlog "Untar file $_file at directory $_src_holder "
+        tar -z -x -C $_src_holder -f "$_src_holder/$_file" 2>&1
+       
+        # Obtain directory name holding the sources.
+        local _dir="$(find $_src_holder -maxdepth 1 -type d -name "${_name}*" | tail -n 1 | xargs basename)"
+        [ -z "$_dir" ] && error_exit "No directory found inside the downloaded file. Please check contents of $_remote_path "
+
+        # Obtain commit hash from directory name.
+        local _commit="$(echo "$_dir" | cut -f 2 -d '-')"
+        [ -z "$_commit" ] && error_exit "Directory name different than expected, expected is pattern <name>-<hash> but found $_dir"
+
+        #Target name of the sources.
+        local _src_d="$_name-$_commit"
+        local _tar="${_src_d}.tgz"
+        local _tar_path="${BUILD_DIR}/SOURCES/${_tar}"
+
+        [ -d "$_tar_path" ] && rm -rf "$_tar_path"
+        cp -r "${_src_holder}/${_file}" "$_tar_path"
+
+        ilog "Remote sources downloaded and available at $_tar"
+
+        local _mesos_version="$(get_mesos_version "$_src_holder/$_dir")"
+
+        echo "$_commit"         > "${BUILD_DIR}/$_COMMIT_HASH_F"
+        echo "$_tar"            > "${BUILD_DIR}/$_REMOTE_SRC_TAR_F"
+        echo "$_src_d"          > "${BUILD_DIR}/$_REMOTE_SRC_FILE_F"
+        echo "$_mesos_version"  > "${BUILD_DIR}/$_MESOS_V_F"
+
+    else
+        error_exit "Remote source file not found at ${_src_holder}/${_file}"
+    fi
+}
+
+function get_jdk_version
+{
+    [ ! -x "$1/bin/java" ] && error_exit "Unable to execute [$1/bin/java] !"
+
+    local _jdk_version=$("$1/bin/java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    echo "$_jdk_version"
+}
+
+function cmd_init_rpm
+{
+    init_build_dir
+
+    if [ ! -f "${BUILD_DIR}/$_REMOTE_SRC_FILE_F" ]; then
+        _remote_src_name="$(get_src_from_github $REPO_NAME $HASH)"
+    fi
+
+    if [ -f "${BUILD_DIR}/$_REMOTE_SRC_TAR_F" ]; then
+        _remote_src_tar="$(cat "${BUILD_DIR}/$_REMOTE_SRC_TAR_F")"
+    else
+        error_exit "Unable to read the remote tar file name ${BUILD_DIR}/${_REMOTE_SRC_TAR_F}!"
+    fi
+    dlog "Remote Src Tar resolves to: $_remote_src_tar"
+
+    if [ -f "${BUILD_DIR}/$_REMOTE_SRC_FILE_F" ]; then
+        _remote_src_name="$(cat "${BUILD_DIR}/$_REMOTE_SRC_FILE_F")"
+    else
+        error_exit "Unable to read the remote source file name ${BUILD_DIR}/${_REMOTE_SRC_FILE_F}!"
+    fi
+    dlog "Remote Src Name resolves to: $_remote_src_name"
+
+    if [ -f "${BUILD_DIR}/$_COMMIT_HASH_F" ]; then
+        _commit="$(cat "${BUILD_DIR}/$_COMMIT_HASH_F")"
+    else
+        error_exit "Unable to read the commit hash form file ${BUILD_DIR}/${_COMMIT_HASH_F}, look like the sources were not properly initialized!"
+    fi
+    dlog "Commit resolved to [$_commit]"
+
+    if [ -f "${BUILD_DIR}/$_MESOS_V_F" ]; then
+        _mesos_version="$(cat "${BUILD_DIR}/$_MESOS_V_F")"
+    else
+        error_exit "Unable to to get the Mesos Version from ${BULD_DIR}/${_MESOS_V_F}!"
+    fi
+    dlog "Resolved Mesos Version [$_mesos_version]"
+
+
+    _build_qualifier="${QUALIFIER}"
+
+    # if we have a tag lets add it to the build qualifier.
+    if [[ -n "$_build_qualifier" ]] &&  [[ -n "$TAG" ]]; then
+        _build_qualifier="$_build_qualifier.$TAG"
+    elif [[ -n "$TAG" ]]; then
+        _build_qualifier="$TAG"
+    fi
+
+    # if the build qualifier is empty lets just enable 
+    # the hash qualifier by default.
+    if [ -z "${_build_qualifier}" ]; then
+        _build_qualifier="n"
+        _hash_qualifier=1
+    fi
+
+    # check if the build number needs to be added to the build
+    # qualifier.
+    if [ $_buildnum_qualifier -eq 1 ]; then
+        [ -z "$_build_qualifier" ] && _build_qualifier="build" 
+        _build_qualifier="${_build_qualifier}.b${BUILD_NUMBER:-na}"
+    fi
+
+    # check if the hash needs to be added to the build qualifier.
+    if [ $_hash_qualifier -eq 1 ]; then
+        _sc="$(echo ${_commit:0:7})"
+        _build_qualifier="${_build_qualifier}.${_sc}"
+    fi
+    # the final full build qualifier.
+    dlog "Build qualifier resolved to [$_build_qualifier]"
+
+    _jdk_home="$JAVA_HOME"
+    ilog "JDK Home resolved to [$_jdk_home]"
+
+    _jdk_version="$(get_jdk_version "$_jdk_home")"
+    ilog "JDK Version resolved to [$_jdk_version]"
+
+    echo "
+export REMOTE_SRC_TAR=\"${_remote_src_tar}\"
+export REMOTE_SRC_NAME=\"${_remote_src_name}\"
+export MESOS_VERSION=\"${_mesos_version}\"
+export BUILD_QUALIFIER=\"${_build_qualifier}\"
+export JDK_HOME=\"${_jdk_home}\"
+export JDK_VERSION=\"${_jdk_version}\"
+    " > $BUILD_DIR/spec-env.sh
+    local _out=$?
+
+    ilog "Spec Environment : \n$(cat $BUILD_DIR/spec-env.sh)"
+    return $_out
+}
+
+function cmd_build_srpm {
+    cmd_init_rpm
+
+    msg="$(cd $BUILD_DIR; 
+    source ./spec-env.sh; 
+    rpmbuild -bs --define '_topdir '$BUILD_DIR SPECS/mesos.spec)"
+    _out=$?
+    ilog "$msg"
+    _srpm_path="$(echo "$msg" | awk '{print $2}')"
+    #_srpm_name="$(basename "$_srpm_path")"
+
+    echo "$_srpm_path" > "$BUILD_DIR/$_MESOS_SRPM_F"
+    ilog "SRPM name [$_srpm_path] stored at $BUILD_DIR/$_MESOS_SRPM_F"
+
+    return $_out 
+}
+
+function cmd_build_rpm {
+    cmd_init_rpm
+
+    msg="$(
+        cd $BUILD_DIR; 
+        source ./spec-env.sh; 
+        rpmbuild -ba --define '_topdir '$BUILD_DIR SPECS/mesos.spec
+    )"
+
+    _out=$?
+    ilog "$msg"
+
+    return $_out
+}
+
+function cmd_mock_init {
+    cmd_build_srpm
+
+    if [ -f "${BUILD_DIR}/$_MESOS_SRPM_F" ]; then
+        _srpm_path="$(cat "${BUILD_DIR}/$_MESOS_SRPM_F")"
+    else
+        error_exit "Unable to read the SRPM path from file name ${BUILD_DIR}/${_MESOS_SRPM_F}!"
+    fi
+    dlog "SRPM Path : $_srpm_path"
+
+    $_mock_cmd init
+    dlog "Mock environment initialized."
+    
+    $( source "$BUILD_DIR/spec-env.sh";
+        $_mock_cmd --copyin "$JAVA_HOME" "$JAVA_HOME";
+        dlog "Mock: JAVA_HOME [$JAVA_HOME] copied." )
+
+    $_mock_cmd --copyin "$BUILD_DIR/spec-env.sh" "/etc/profile.d/spec-env.sh"
+    dlog "Mock: spec-env.sh copied."
+
+    dlog "Mock: Installing dependencies as defined by the SRPM $_srpm_path"
+    $_mock_cmd --installdeps "$_srpm_path"
+}
+
+function cmd_mock_rebuild {
+    cmd_mock_init
+
+    if [ -f "${BUILD_DIR}/$_MESOS_SRPM_F" ]; then
+        _srpm_path="$(cat "${BUILD_DIR}/$_MESOS_SRPM_F")"
+    else
+        error_exit "Unable to read the SRPM path from file name ${BUILD_DIR}/${_MESOS_SRPM_F}!"
+    fi
+    dlog "SRPM Path : $_srpm_path"
+
+    _mock_rslt_d="$BUILD_DIR/mock"
+    [ -d "$_mock_rslt_d" ] && rm -rf "$_mock_rslt_d"
+    mkdir -p "$_mock_rslt_d"
+
+    _mock_opt="--rebuild --no-clean --no-cleanup-after --resultdir=$_mock_rslt_d"
+    [ $_verbose -eq 1 ] && _mock_opt="$_mock_opt --verbose" 
+
+    msg="$($_mock_cmd $_mock_opt -- "$_srpm_path")"
+    _out=$?
+
+    ilog "Mock: $msg"
+
+    return $_out
+}
+
+function cmd_mock_clean {
+    $_mock_cmd --clean
+}
+
+function cmd_clean {
+    [ -d "$BUILD_DIR" ] && rm -r "$BUILD_DIR"
+    [ -x "$_mock_cmd" ] && $_mock_cmd --clean
+}
+
+function cmd_mock_flow {
+    cmd_mock_rebuild
+    _out=$?
+
+    if [ $_out -eq 0 ]; then
+        ilog "Mock Rebuild was successful, proceeding to cleaning.."
+        cmd_mock_clean
+    else
+        error_exit "Mock Rebuild didn't finish as expected, the mock shell wasn't clean. Please review and verbose."
+    fi
+}
+
+function cmd_default {
+    cmd_mock_flow
+}
+
+function add_cmd {
+    local _n="${1//-/_}"
+    local _c="cmd_$_n"
+    if [ $(declare -F "$_c") ]; then
+        push_cmd "$_c"
+    else
+        error_exit "Command $1 not supported."
+    fi
+}
+
+function main {
+
+    if [ ${#_cmd_stack[@]} -eq 0 ]; then
+        push_cmd "cmd_default"
+    fi
+    
+   
+    dlog "Preparing execution..."
+    call_pre_funs
+    
+    dlog "Executing ${#_cmd_stack[@]} commands..."
+    call_cmds
+
+    dlog "Finished."
+}
+
+# Helper function to describe the script usage
+function echo_usage() {
+    cat << EOF
+Use to build Apache Mesos Source and Binary RPMs in EL Distributions.
+Note that the given JAVA_HOME environment variable is required and will be used to build such RPMs.
+
+Your JAVA_HOME currently points to [$JAVA_HOME].
+
+Usage: mesos-build [OPTIONS] <command>
+
+Options:
+
+    -h --help    : Show this help
+    -d --dir     : Path to the build directory. Defaults to ./build.
+    --hash       : Git commit that the build will be based on, if non specified we use HEAD. 
+    --qualifier  : Build qualifier, e.g. rc1.
+    --spec       : Spec file that will be used for the build. The file shoudl be available at ./specs.
+    --hashq      : Flag that tells the build to including Commit Hash as part of the build qualifier.
+    --buildnumq  : Flag that tells the build to including the Build Number as part of the qualifier,
+                   the build number is taken form the BUILD_NUMBER ENV.
+    -v           : Flag to enable verbose.
+    
+The command that will be executed, by default executes the mock-flow command, full list of commands bellow:
+
+    init-rpm        : Initializes the build directory structure. See -d|--dir to define your build directory.
+    build-srpm      : Builds a Source RPM, the sources is downloaded from GITHUB_SRC_URL [$GITHUB_SRC_URL]
+                      according the given commit, see the --commit argument.
+    build-rpm       : Builds a Binary and Source RPMs, sources are obtained following the same approach 
+                      as the build-srpm command.
+    mock-init       : Initializes the RPM Build Mock Chroot environment. Requires root.
+    mock-rebuild    : Builds the Binary RPM given the Source RPM generated by the build-srpm command using Mock.
+                      Requires root.
+    mock-clean      : Cleans the Mock Chroot environment. Requires root.
+    mock-flow       : Executes mock-rebuild and if successful a mock-clean. Requires root.
+    clean           : Cleans the Mock Chroot environment if available and removes the build directory.
+
+e.g.
+
+    Using a build number.
+
+    BUILD_NUMBER="\${BUILD_NUMBER:-0}" ./mesos-build --qualifier=mybuild --hashq --buildnumq --command=mock-flow mock-flow
+
+
+This scripts depends on: awk, grep, mock, perl, rpmbuild, sed
+
+Last updated on 21-03-2014
+
+Authors:
+    -- Bernardo Gomez Palacio <bernardo.gomezpalacio@guavus.com>
+
+EOF
+}
+
+
+while test $# -gt 0; do
+    case "$1" in
+        -h|--help)
+            echo_usage
+            exit 0;; 
+            
+        --dir=*)
+            export BUILD_DIR=`echo $1 | sed -e 's/^[^=]*=//g'`
+            shift;;
+
+        --spec=*)
+            export SPEC=`echo $1 | sed -e 's/^[^=]*=//g'`
+            shift;;
+
+        --tag=*)
+            export TAG=`echo $1 | sed -e 's/^[^=]*=//g'`
+            push_pre_fun "set_hash_from_tag" 
+            shift;;
+        --qualifier=*)
+            export QUALIFIER=`echo $1 | sed -e 's/^[^=]*=//g'`
+            shift;;
+            
+        --hash)
+            export HASH=`echo $1 | sed -e 's/^[^=]*=//g'`
+            shift;;
+
+        --hashq)
+            export _hash_qualifier=1
+            shift;;
+
+        --buildnumq)
+            export _buildnum_qualifier=1
+            shift;;
+
+        -v)
+            export _verbose=1
+            shift;;
+
+        *)
+            add_cmd "$1"
+            shift ;;
+    esac
+done
+
+main
+
