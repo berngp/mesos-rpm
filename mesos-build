@@ -30,6 +30,7 @@ _mock_cmd="${MOCK_CMD:-/usr/bin/mock}"
 # Internal Flags
 declare -i _verbose=0
 declare -i _hash_qualifier=0
+declare -i _tag_qualifier=0
 declare -i _buildnum_qualifier=0
 
 declare -a _cmd_stack
@@ -233,34 +234,24 @@ function cmd_init_rpm
 
     _build_qualifier="${QUALIFIER}"
 
-    # if we have a tag lets add it to the build qualifier.
-    if [[ -n "$_build_qualifier" ]] &&  [[ -n "$TAG" ]]; then
-        _build_qualifier="$_build_qualifier.$TAG"
-    elif [[ -n "$TAG" ]]; then
-        _build_qualifier="$TAG"
+    # include the Tag as part of the rpm version?
+    if [ $_tag_qualifier -eq 1 ]; then
+        [ -n "$_build_qualifier" ] && _build_qualifier="${_build_qualifier}."
+        _build_qualifier="${_build_qualifier}${TAG:-tna}"
     fi
-
-    # if the build qualifier is empty lets just enable 
-    # the hash qualifier by default.
-    if [ -z "${_build_qualifier}" ]; then
-        _build_qualifier="n"
-        _hash_qualifier=1
-    fi
-
-    # check if the build number needs to be added to the build
-    # qualifier.
+    # include build number as part of the rpm version?
     if [ $_buildnum_qualifier -eq 1 ]; then
-        [ -z "$_build_qualifier" ] && _build_qualifier="build" 
-        _build_qualifier="${_build_qualifier}.b${BUILD_NUMBER:-na}"
+        [ -n "$_build_qualifier" ] && _build_qualifier="${_build_qualifier}." 
+        _build_qualifier="${_build_qualifier}b${BUILD_NUMBER:-na}"
     fi
-
-    # check if the hash needs to be added to the build qualifier.
-    if [ $_hash_qualifier -eq 1 ]; then
+    # include the git hash as part of the rpm version?
+    if [[ $_hash_qualifier -eq 1 ]] || [[ -z $_build_qualifier ]]; then
         _sc="$(echo ${_commit:0:7})"
-        _build_qualifier="${_build_qualifier}.${_sc}"
+        [ -n "$_build_qualifier" ] && _build_qualifier="${_build_qualifier}." 
+        _build_qualifier="${_build_qualifier}h_${_sc}"
     fi
-    # the final full build qualifier.
-    dlog "Build qualifier resolved to [$_build_qualifier]"
+    # the final rpm version:
+    dlog "Build qualifier/rpm version resolved to [$_build_qualifier]"
 
     _jdk_home="$JAVA_HOME"
     ilog "JDK Home resolved to [$_jdk_home]"
@@ -508,6 +499,10 @@ while test $# -gt 0; do
 
         --hashq)
             export _hash_qualifier=1
+            shift;;
+
+        --tagq)
+            export _tag_qualifier=1
             shift;;
 
         --buildnumq)
