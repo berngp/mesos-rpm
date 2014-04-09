@@ -282,7 +282,8 @@ export JDK_VERSION=\"${_jdk_version}\"
     return $_out
 }
 
-function cmd_build_srpm {
+function cmd_build_srpm
+{
     cmd_init_rpm
 
     msg="$(cd $BUILD_DIR; 
@@ -299,7 +300,8 @@ function cmd_build_srpm {
     return $_out 
 }
 
-function cmd_build_rpm {
+function cmd_build_rpm
+{
     cmd_init_rpm
 
     msg="$(
@@ -314,7 +316,8 @@ function cmd_build_rpm {
     return $_out
 }
 
-function cmd_mock_init {
+function cmd_mock_init
+{
     cmd_build_srpm
 
     if [ -f "${BUILD_DIR}/$_MESOS_SRPM_F" ]; then
@@ -338,7 +341,8 @@ function cmd_mock_init {
     $_mock_cmd --installdeps "$_srpm_path"
 }
 
-function cmd_mock_rebuild {
+function cmd_mock_rebuild
+{
     cmd_mock_init
 
     if [ -f "${BUILD_DIR}/$_MESOS_SRPM_F" ]; then
@@ -363,16 +367,19 @@ function cmd_mock_rebuild {
     return $_out
 }
 
-function cmd_mock_clean {
+function cmd_mock_clean
+{
     $_mock_cmd --clean
 }
 
-function cmd_clean {
+function cmd_clean
+{
     [ -d "$BUILD_DIR" ] && rm -r "$BUILD_DIR"
     [ -x "$_mock_cmd" ] && $_mock_cmd --clean
 }
 
-function cmd_mock_flow {
+function cmd_mock_flow
+{
     cmd_mock_rebuild
     _out=$?
 
@@ -384,11 +391,13 @@ function cmd_mock_flow {
     fi
 }
 
-function cmd_default {
+function cmd_default
+{
     cmd_mock_flow
 }
 
-function add_cmd {
+function add_cmd
+{
     local _n="${1//-/_}"
     local _c="cmd_$_n"
     if [ $(declare -F "$_c") ]; then
@@ -398,7 +407,8 @@ function add_cmd {
     fi
 }
 
-function main {
+function main
+{
 
     if [ ${#_cmd_stack[@]} -eq 0 ]; then
         push_cmd "cmd_default"
@@ -415,7 +425,8 @@ function main {
 }
 
 # Helper function to describe the script usage
-function echo_usage() {
+function echo_usage()
+{
     cat << EOF
 Use to build Apache Mesos Source and Binary RPMs in EL Distributions.
 Note that the given JAVA_HOME environment variable is required and will be used to build such RPMs.
@@ -429,6 +440,7 @@ Options:
     -h --help    : Show this help
     -d --dir     : Path to the build directory. Defaults to ./build.
     --hash       : Git commit that the build will be based on, if non specified we use HEAD. 
+    --tag        : Git Tag that should be used for this build. If you specify a tag don't specify a hash.
     --qualifier  : Build qualifier, e.g. rc1.
     --spec       : Spec file that will be used for the build. The file shoudl be available at ./specs.
     --hashq      : Flag that tells the build to including Commit Hash as part of the build qualifier.
