@@ -375,11 +375,18 @@ function cmd_mock_flow
     _out=$?
 
     if [ $_out -eq 0 ]; then
-        ilog "Mock Rebuild was successful, proceeding to cleaning.."
+        ilog "Mock rebuild was successful, cleaning.."
         cmd_mock_clean
+        _out=$?
+        if [ $_out -eq 0 ]; then
+            ilog "Mock clean was successful."
+        else
+            wlog "Mock clean failed with $_out!"
+        fi
     else
-        error_exit "Mock Rebuild didn't finish as expected, the mock shell wasn't clean. Please review and verbose."
+        error_exit "Mock rebuild didn't finish as expected, the mock shell wasn't clean. Please review and verbose."
     fi
+    return $_out
 }
 
 function cmd_default
@@ -404,15 +411,15 @@ function main
     if [ ${#_cmd_stack[@]} -eq 0 ]; then
         push_cmd "cmd_default"
     fi
-    
    
-    dlog "Preparing execution..."
+    ilog "Preparing execution..."
     call_pre_funs
     
-    dlog "Executing ${#_cmd_stack[@]} commands..."
+    ilog "Executing ${#_cmd_stack[@]} commands..."
     call_cmds
 
-    dlog "Finished."
+    ilog "Finished."
+    exit 0
 }
 
 # Helper function to describe the script usage
