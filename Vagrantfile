@@ -31,12 +31,16 @@ Vagrant.configure("2") do |config|
     #chef.data_bags_path = "spec/data_bags"
     chef.run_list = [ 
         "recipe[yum]",
-        "recipe[java]"
+        "recipe[yum-epel]",
+        "recipe[java]",
+        "recipe[maven]",
+        "recipe[mesos-buildbox::packages]"
     ]
 
     chef.json = {
         "java" => {
             "jdk_version" =>  "8",
+            "install_flavor" => "oracle",
             "oracle" => {
                 "accept_oracle_download_terms" => true,
                 "install_flavor" => "oracle"
