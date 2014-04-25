@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 group :development do
-    gem 'berkshelf', '~> 2.0.14'
+    gem 'berkshelf', '~> 3.1.1'
     gem 'chef', '~> 11.10.4'
     gem 'chef-zero', '~> 1.7.3'
     gem 'gem-ctags'
