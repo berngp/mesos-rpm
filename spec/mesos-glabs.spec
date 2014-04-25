@@ -4,6 +4,7 @@
 %global build_qualifier   %(echo "$BUILD_QUALIFIER")
 %global jdk_home          %(echo "$JDK_HOME")
 %global jdk_version       %(echo "$JDK_VERSION")
+%global maven_home        %(echo "$MAVEN_HOME")
 
 %define _rel_version         %{?build_qualifier}%{?dist}
 %define _full_ver            %{mesos_version}-%{rel_version}
@@ -90,6 +91,8 @@ Cluster manager that provides resource isolation and sharing distributed applica
 %build
 ./bootstrap
 JAVA_HOME=%{jdk_home}; export JAVA_HOME;
+MAVEN_HOME=%{maven_home}; export MAVEN_HOME;
+# TODO why are we using --disable-static
 %configure --disable-static
 %{__make} %{?_smp_mflags}
 

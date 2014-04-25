@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -22,8 +21,10 @@ SPEC="mesos-glabs.spec"
 
 REPO_NAME="${REPO_NAME:-mesos}"
 BUILD_DIR="${BUILD_DIR:-`pwd`/build}"
-GITHUB_SRC_URL="${GITHUB_SRC_URL:-https://github.com/apache/mesos/archive}"
-GITHUB_TAG_API="${GITHUB_TAG_API:-https://api.github.com/repos/apache/mesos/git/refs/tags}"
+GITHUB_ORG="${GITHUB_ORG:-apache}"
+GITHUB_SRC_URL="${GITHUB_SRC_URL:-https://github.com/$GITHUB_ORG/$REPO_NAME/archive}"
+GITHUB_TAG_API="${GITHUB_TAG_API:-https://api.github.com/repos/$GITHUB_ORG/$REPO_NAME/git/refs}"
+MAVEN_CACHE_HOME="$HOME/.m2"
 
 _mock_cmd="${MOCK_CMD:-/usr/bin/mock}"
 
@@ -32,6 +33,11 @@ declare -i _verbose=0
 declare -i _hash_qualifier=0
 declare -i _tag_qualifier=0
 declare -i _buildnum_qualifier=0
+
+declare -i _with_java=1
+declare -i _with_maven=0
+declare -i _with_maven_cache=0
+declare -i _mock_clean_on_success=1
 
 declare -a _cmd_stack
 declare -a _func_stack
@@ -123,15 +129,31 @@ function get_mesos_version
 function set_hash_from_tag
 {
     local _tag="${TAG}"
-    [ -z "$_tag" ] && error_exit "No tag was found specified!"
+    [ -z "$_tag" ] && error_exit "No tag was specified!"
    
-    local _tag_url="$GITHUB_TAG_API/$_tag"
+    local _tag_url="$GITHUB_TAG_API/tags/$_tag"
 
     ilog "Resolving tag from $_tag_url"
     local _hash="$(curl -L "$_tag_url" | perl -nlw -e '/"sha"\s*:\s*"([\d\w]+)"/ and print $1')"
     [ -z "$_hash" ] && error_exit "Unable to obtain the hash for tag $_tag using $_tag_url"
 
     ilog "Tag $_tag resolved to hash $_hash"
+    export HASH="$_hash"
+    echo "$_hash"
+}
+
+function set_hash_from_branch
+{
+    local _branch="${BRANCH}"
+    [ -z "$_branch" ] && error_exit "No branch was specified!"
+   
+    local _url="$GITHUB_TAG_API/heads/$_branch"
+
+    ilog "Resolving head/branch from $_url"
+    local _hash="$(curl -L "$_url" | perl -nlw -e '/"sha"\s*:\s*"([\d\w]+)"/ and print $1')"
+    [ -z "$_hash" ] && error_exit "Unable to obtain the hash for the head of branch $_branch using $_url"
+
+    ilog "Branch $_branch resolved to hash $_hash"
     export HASH="$_hash"
     echo "$_hash"
 }
@@ -253,12 +275,14 @@ function cmd_init_rpm
     # the final rpm version:
     dlog "Build qualifier/rpm version resolved to [$_build_qualifier]"
 
-    _jdk_home="$JAVA_HOME"
-    ilog "JDK Home resolved to [$_jdk_home]"
+    if [[ $_with_java -eq 1 ]]; then
+        _jdk_home="$JAVA_HOME"
+        ilog "JDK Home resolved to [$_jdk_home]"
 
-    _jdk_version="$(get_jdk_version "$_jdk_home")"
-    ilog "JDK Version resolved to [$_jdk_version]"
-
+        _jdk_version="$(get_jdk_version "$_jdk_home")"
+        ilog "JDK Version resolved to [$_jdk_version]"
+    fi
+    
     echo "
 export REMOTE_SRC_TAR=\"${_remote_src_tar}\"
 export REMOTE_SRC_NAME=\"${_remote_src_name}\"
@@ -266,6 +290,7 @@ export MESOS_VERSION=\"${_mesos_version}\"
 export BUILD_QUALIFIER=\"${_build_qualifier}\"
 export JDK_HOME=\"${_jdk_home}\"
 export JDK_VERSION=\"${_jdk_version}\"
+export MAVEN_HOME=\"${MAVEN_HOME}\"
     " > $BUILD_DIR/spec-env.sh
     local _out=$?
 
@@ -307,6 +332,31 @@ function cmd_build_rpm
     return $_out
 }
 
+function mock_cp_java
+{
+    $(source "$BUILD_DIR/spec-env.sh";
+        $_mock_cmd --copyin "$JAVA_HOME" "$JAVA_HOME";
+        dlog "Mock: JAVA_HOME [$JAVA_HOME] copied.")
+}
+
+function mock_cp_maven
+{
+    $(source "$BUILD_DIR/spec-env.sh";
+        $_mock_cmd --copyin "$MAVEN_HOME" "$MAVEN_HOME";
+        dlog "Mock: MAVEN_HOME [$MAVEN_HOME] copied.")
+
+    if [[ $_with_maven_cache -eq 1 ]]; then
+        #TODO add support of .m2 reuse/caching
+        # chroot env at /var/lib/mock/epel-6-x86_64/root/root/.m2
+        local local_m2_cache="$MAVEN_CACHE_HOME"
+        [ -d $local_m2_cache ] || mkdir "$local_m2_cache"
+
+        $(source "$BUILD_DIR/spec-env.sh";
+            $_mock_cmd --copyin "$local_m2_cache" "/root/.m2";
+            dlog "Mock: maven cache [$local_m2_cache] copied to /root/.m2")
+    fi
+}
+
 function cmd_mock_init
 {
     cmd_build_srpm
@@ -320,17 +370,22 @@ function cmd_mock_init
 
     $_mock_cmd init
     dlog "Mock environment initialized."
-    
-    $( source "$BUILD_DIR/spec-env.sh";
-        $_mock_cmd --copyin "$JAVA_HOME" "$JAVA_HOME";
-        dlog "Mock: JAVA_HOME [$JAVA_HOME] copied." )
 
+    if [[ $_with_java -eq 1 ]]; then
+        mock_cp_java
+    fi
+
+    if [[ $_with_maven -eq 1 ]]; then
+        mock_cp_maven
+    fi
+   
     $_mock_cmd --copyin "$BUILD_DIR/spec-env.sh" "/etc/profile.d/spec-env.sh"
     dlog "Mock: spec-env.sh copied."
 
     dlog "Mock: Installing dependencies as defined by the SRPM $_srpm_path"
     $_mock_cmd --installdeps "$_srpm_path"
 }
+
 
 function cmd_mock_rebuild
 {
@@ -375,14 +430,18 @@ function cmd_mock_flow
     _out=$?
 
     if [ $_out -eq 0 ]; then
-        ilog "Mock rebuild was successful, cleaning.."
-        cmd_mock_clean
-        _out=$?
-        if [ $_out -eq 0 ]; then
-            ilog "Mock clean was successful."
-        else
-            wlog "Mock clean failed with $_out!"
+        ilog "Mock rebuild was successful!"
+
+        if [[ $_mock_clean_on_success -eq 1 ]]; then
+            cmd_mock_clean
+            _out=$?
+            if [ $_out -eq 0 ]; then
+                dlog "Mock clean was successful."
+            else
+                wlog "Mock clean failed with $_out!"
+            fi
         fi
+
     else
         error_exit "Mock rebuild didn't finish as expected, the mock shell wasn't clean. Please review and verbose."
     fi
@@ -438,12 +497,21 @@ Options:
     -h --help    : Show this help
     -d --dir     : Path to the build directory. Defaults to ./build.
     --hash       : Git commit that the build will be based on, if non specified we use HEAD. 
-    --tag        : Git Tag that should be used for this build. If you specify a tag don't specify a hash.
+    --tag        : Git Tag that should be used for this build. If you specify a tag
+                   don't specify a hash.
+    --branch     : Git branch that should be used for this build. The hash to use is resolved
+                   from the head of such branch at the moment of the request. 
+                   If you specify a branch don't specify a hash or tag.
     --qualifier  : Build qualifier, e.g. rc1.
     --spec       : Spec file that will be used for the build. The file shoudl be available at ./specs.
     --hashq      : Flag that tells the build to including Commit Hash as part of the build qualifier.
     --buildnumq  : Flag that tells the build to including the Build Number as part of the qualifier,
                    the build number is taken form the BUILD_NUMBER ENV.
+    --maven      : Path to the Maven Home that should be copied to the chroot enviornment.
+    --maven-cache: If no value is given it will copy the '$HOME/.m2' to '/root/.m2' in the chroot environment.
+                   If a value is given it will be used as the local path of the '.m2' that will be copied
+                   to the chroot environment '/root/.m2'.
+    --no-jdk     : Flag that will disable setting the Java Development Kit in the chroot environment.
     -v           : Flag to enable verbose.
     
 The command that will be executed, by default executes the mock-flow command, full list of commands bellow:
@@ -464,7 +532,7 @@ e.g.
 
     Using a build number.
 
-    BUILD_NUMBER="\${BUILD_NUMBER:-0}" ./mesos-build --qualifier=mybuild --hashq --buildnumq --command=mock-flow mock-flow
+    BUILD_NUMBER="\${BUILD_NUMBER:-0}" ./mesos-build --qualifier=mybuild --hashq --buildnumq  mock-flow
 
 
 This scripts depends on: awk, grep, mock, perl, rpmbuild, sed
@@ -494,8 +562,14 @@ while test $# -gt 0; do
 
         --tag=*)
             export TAG=`echo $1 | sed -e 's/^[^=]*=//g'`
-            push_pre_fun "set_hash_from_tag" 
+            push_pre_fun "set_hash_from_tag"
             shift;;
+
+        --branch=*)
+            export BRANCH=`echo $1 | sed -e 's/^[^=]*=//g'`
+            push_pre_fun "set_hash_from_branch"
+            shift;;
+
         --qualifier=*)
             export QUALIFIER=`echo $1 | sed -e 's/^[^=]*=//g'`
             shift;;
@@ -514,6 +588,28 @@ while test $# -gt 0; do
 
         --buildnumq)
             export _buildnum_qualifier=1
+            shift;;
+
+        --no-jdk)
+            export _with_java=0
+            shift;;
+
+        --maven=*)
+            export MAVEN_HOME=`echo $1 | sed -e 's/^[^=]*=//g'`
+            export _with_maven=1
+            shift;;
+
+        --maven-cache)
+            export _with_maven_cache=1
+            shift;;
+
+        --maven-cache=*)
+            export MAVEN_CACHE_HOME=`echo $1 | sed -e 's/^[^=]*=//g'`
+            export _with_maven_cache=1
+            shift;;
+
+        --no-clean)
+            export _mock_clean_on_success=0
             shift;;
 
         -v)
