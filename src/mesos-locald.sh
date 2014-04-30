@@ -137,7 +137,8 @@ RETVAL=0
 while test $# -gt 0; do
   case "$1" in
     --no-daemonize)
-      do_daemonize=0 && shift ;;
+      do_daemonize=0
+      ;;
     start)
       start
       ;;
@@ -158,6 +159,7 @@ while test $# -gt 0; do
       echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
       RETVAL=1
   esac
+  shift
 done
 
 exit $RETVAL
