@@ -32,7 +32,7 @@ Source6:        mesos-slave.conf
 Source7:        mesos-local.conf
 
 Prefix:         /usr
-    
+
 BuildRoot:      %{_tmppath}/%{name}-%{_full_ver}-root
 BuildRequires:  libtool
 BuildRequires:  automake
@@ -62,7 +62,7 @@ BuildRequires:  cyrus-sasl-plain
 
 Requires:  openssl
 Requires:  zlib
-Requires:  libcurl  
+Requires:  libcurl
 Requires:  cyrus-sasl
 Requires:  cyrus-sasl-md5
 Requires:  cyrus-sasl-plain
@@ -94,7 +94,7 @@ JAVA_HOME=%{jdk_home}; export JAVA_HOME;
 MAVEN_HOME=%{maven_home}; export MAVEN_HOME;
 # TODO why are we using --disable-static
 %configure --disable-static
-%{__make} %{?_smp_mflags}
+%{__make} -j 3 %{?_smp_mflags}
 
 %clean
 rm -rf %{buildroot}
@@ -119,17 +119,17 @@ exit 0
 %install
 %make_install
 rm -rf %{buildroot}%{_libdir}/*.la
-install -p -D -m 755  %{S:1} %{buildroot}%{_sbindir}/mesos-env.sh 
-install -p -D -m 755  %{S:2} %{buildroot}%{_sbindir}/mesos-masterd.sh 
-install -p -D -m 755  %{S:3} %{buildroot}%{_sbindir}/mesos-slaved.sh 
-install -p -D -m 755  %{S:4} %{buildroot}%{_sbindir}/mesos-locald.sh 
+install -p -D -m 755  %{S:1} %{buildroot}%{_sbindir}/mesos-env.sh
+install -p -D -m 755  %{S:2} %{buildroot}%{_sbindir}/mesos-masterd.sh
+install -p -D -m 755  %{S:3} %{buildroot}%{_sbindir}/mesos-slaved.sh
+install -p -D -m 755  %{S:4} %{buildroot}%{_sbindir}/mesos-locald.sh
 install -p -D -m 444  %{S:5} %{buildroot}%{_mesos_sysconfdir}/templates/mesos-master.conf
 install -p -D -m 444  %{S:6} %{buildroot}%{_mesos_sysconfdir}/templates/mesos-slave.conf
 install -p -D -m 444  %{S:7} %{buildroot}%{_mesos_sysconfdir}/templates/mesos-local.conf
 
 install -d -m 755 %{buildroot}%{_mesos_logdir}
 
-# TODO: Determine the best home for the deployment templates. 
+# TODO: Determine the best home for the deployment templates.
 mv -f %{buildroot}%{_var}/mesos/deploy %{buildroot}%{_datadir}/mesos/
 
 %files
@@ -180,7 +180,7 @@ Mesos Master as a Service.
 /bin/mkdir %{_mesos_logdir}/mesos-master
 /bin/chown -R mesos:mesos %{_mesos_logdir}
 
-%preun -n mesos-master 
+%preun -n mesos-master
 if [ $1 = 0 ] ; then
     /sbin/service mesos-master stop >/dev/null 2>&1
     /sbin/chkconfig --del mesos-master
@@ -252,7 +252,7 @@ fi
 if [ "$1" -ge "1" ] ; then
     /sbin/service mesos-local condrestart >/dev/null 2>&1 || :
 fi
- 
+
 #===============================================================================================
 # Dev Install
 #===============================================================================================
@@ -281,5 +281,5 @@ developing with mesos.
 - Adding the daemon scripts and init.d setup for mesos-master, mesos-slave and mesos-local.
 
 * Mon Aug 19 2013 Bernardo Gomez Palacio. <bernardo.gomezpalacio@gmail.com>
-- Wrote mesos.spec based on Tomothy St. Clair mesos.spec at 
+- Wrote mesos.spec based on Tomothy St. Clair mesos.spec at
 # todo insert git tag description and potentially cat some changelog from the repo.
