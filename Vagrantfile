@@ -3,7 +3,7 @@
 #
 
 user = ENV['USER']
-node_name = "mesos-debox-#{user}.local"
+node_name = "mesos-build-#{user}.local"
 
 Vagrant.configure("2") do |config|
   config.vm.hostname = node_name
